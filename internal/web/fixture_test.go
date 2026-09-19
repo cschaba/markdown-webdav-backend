@@ -189,6 +189,56 @@ func TestFixtureVault(t *testing.T) {
 		t.Errorf("graph.json served as %q", res.Header.Get("Content-Type"))
 	}
 
+	// Where a link leads depends on where it stands: seen from links/Here.md.
+	here := body("/test/links/Here")
+	for written, want := range map[string]string{
+		// a name: next to the page first, then the vault
+		"`[[Twin]]` —":     `<a href="/test/links/Twin">Twin</a>`,
+		"`[[00 Index]]` —": `<a href="/test/00%20Index">00 Index</a>`,
+		"`![[dot.png]]` —": `<img src="/test/links/dot.png">`,
+		// a path: relative, then from the root
+		"`[[deep/Twin]]` —":     `<a href="/test/links/deep/Twin">deep/Twin</a>`,
+		"`[[sub/03 Nested]]` —": `<a href="/test/sub/03%20Nested">sub/03 Nested</a>`,
+		"`![[deep/dot.png]]` —": `<img src="/test/links/deep/dot.png">`,
+		// ./ and ../ are followed strictly
+		"`[[./Twin]]`:":             `<a href="/test/links/Twin">./Twin</a>`,
+		"`[[../Twin]]` —":           `<a href="/test/Twin">../Twin</a>`,
+		"`![[./deep/dot.png|16]]`,": `<img src="/test/links/deep/dot.png" width="16">`,
+		"`[[./00 Index]]` —":        `<span class="missing" title="Not found in this vault: ./00 Index">./00 Index</span>`,
+		"`[[../../Twin]]` —":        `<span class="missing" title="Not found in this vault: ../../Twin">`,
+		// from the vault root, strictly
+		"`[[/Twin]]`:":                 `<a href="/test/Twin">/Twin</a>`,
+		"`[[/links/deep/Twin]]`:":      `<a href="/test/links/deep/Twin">/links/deep/Twin</a>`,
+		"`![[/links/deep/dot.png]]` —": `<img src="/test/links/deep/dot.png">`,
+		"`[[/deep/Twin]]` —":           `<span class="missing" title="Not found in this vault: /deep/Twin">`,
+		// Markdown links and images go the same way
+		"`[relative](deep/Twin.md)`:":        `<a href="/test/links/deep/Twin">relative</a>`,
+		"`[up](../Twin.md)`:":                `<a href="/test/Twin">up</a>`,
+		"`[from the root](/links/Twin.md)`:": `<a href="/test/links/Twin">from the root</a>`,
+		"`[by name](03%20Nested.md)` —":      `<a href="/test/sub/03%20Nested">by name</a>`,
+		"`![blue](deep/dot.png)`:":           `<img src="/test/links/deep/dot.png" alt="blue">`,
+		"`![gone](../dot.png)` —":            `<span class="missing missing-embed" title="Not found in this vault: ../dot.png">gone</span>`,
+	} {
+		// each case is one list item: what was written, in code, then what it became
+		code := "<code>" + strings.NewReplacer("`", "", "&", "&amp;").Replace(strings.TrimRight(written, " —:,")) + "</code>"
+		_, item, found := strings.Cut(here, "<li>"+code)
+		item, _, _ = strings.Cut(item, "</li>")
+		if !found || !strings.Contains(item, want) {
+			t.Errorf("links/Here, %s\n got: %s\nwant: %s", written, item, want)
+		}
+	}
+	// ...and from the root, the same words mean other files.
+	expect("07 Links", body("/test/07%20Links"), []string{
+		`next to this page: <a href="/test/Twin">Twin</a>`,
+		`follows the path: <a href="/test/links/Twin">links/Twin</a>`,
+		`red: <img src="/test/links/dot.png">`,
+	}, nil)
+	// Each Twin is linked from somewhere else, and the backlinks know it.
+	// (the Twin in links/deep/ says [[../Twin]], which is the one in links/)
+	expect("backlinks of the Twin in links/", aside(body("/test/links/Twin")), []string{"links/Here.md", "07 Links.md", "links/deep/Twin.md"}, nil)
+	expect("backlinks of the Twin in the root", aside(body("/test/Twin")), []string{"links/Here.md", "07 Links.md", "links/deep/Twin.md"}, nil)
+	expect("backlinks of the Twin in links/deep/", aside(body("/test/links/deep/Twin")), []string{"links/Here.md"}, []string{"07 Links.md"})
+
 	// Search. Every page has the box; the results come best match first.
 	expect("search box", index, []string{`<form class="search" action="/test/-/search" role="search">`, `name="q" value=""`}, nil)
 	// rows cuts the result list into its rows and picks three things out of
@@ -302,7 +352,7 @@ func TestFixtureVault(t *testing.T) {
 	expect("v1.2 plan", body("/test/v1.2%20plan"), []string{"this body text must still render"}, nil)
 
 	tags := regexp.MustCompile(`<[^>]+>`).ReplaceAllString(body("/test/-/tags"), "")
-	expect("tags", tags, []string{"#test 7", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
+	expect("tags", tags, []string{"#test 8", "#test/links 1", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
 	expect("tag page", body("/test/-/tag/test"), []string{"01 Formatting.md", "02 Code and Diagrams.md", "sub/03 Nested.md", "00 Index.md"}, []string{"v1.2"})
 	expect("unicode tag", body("/test/-/tag/%C3%BCberpr%C3%BCfung"), []string{"00 Index.md"}, nil)
 

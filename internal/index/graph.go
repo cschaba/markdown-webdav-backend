@@ -45,7 +45,7 @@ func (idx *Index) Graph() Graph {
 	}
 	for _, note := range notes {
 		for _, target := range note.Links {
-			id, ok := idx.Resolve(target) // takes the lock itself
+			id, ok := idx.Resolve(note.Path, target) // takes the lock itself
 			switch {
 			case !ok:
 				// One node per missing name, however it was capitalised.

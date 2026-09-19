@@ -53,10 +53,18 @@ the page about what is a tag, and code blocks are excluded for free.
 the index free of reverse maps that must be repaired on every rename. It is
 linear in the number of links; revisit if a vault makes pages slow.
 
-**Link resolution follows Obsidian:** by base name or trailing path,
-case-insensitive, `.md` optional, shortest path wins. A dot in a name is not
-treated as an extension (`[[v1.2 plan]]`), so the note is tried before the
-literal file.
+**Link resolution starts at the linking note.** A bare name is looked for next
+to the note first, then vault-wide by Obsidian's rule (base name or trailing
+path, shortest path wins). A plain path is tried relative to the note, then
+from the root, then as a trailing path. `./`, `../` and a leading `/` say where
+to look and are followed strictly: a wrong path shows as missing instead of
+landing on a namesake, which would be a wrong link nobody notices. The
+vault-wide fallback for bare names stays because Obsidian writes such links
+and existing vaults depend on them; when the rule changed, every rendered link
+of a real vault was compared before and after, and none moved. Case-insensitive
+throughout, `.md` optional; a dot in a name is not treated as an extension
+(`[[v1.2 plan]]`), so the note is tried before the literal file. Markdown links
+and images use the same resolver; before, their `../` was discarded.
 
 **Several vaults, each under its name.** Test pages in the owner's real notes
 were the mistake that prompted this: they end up in the history and on every

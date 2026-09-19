@@ -102,6 +102,26 @@ WebDAV server on every platform: point it at `https://your-host/dav/<vault>/`
 with the login above. On a desktop the endpoint can also simply be mounted (Finder, GNOME
 Files, `rclone`, `davfs2`).
 
+## Links
+
+`[[Wikilinks]]`, `![[embedded images]]`, `[Markdown](links.md)` and
+`![Markdown](images.png)` all find their target by the same rules. What a link
+means depends on the folder of the note it stands in:
+
+| Written | Means |
+|---|---|
+| `[[Name]]` | the note of that name next to the linking note; if there is none, anywhere in the vault, the shortest path winning |
+| `[[sub/Name]]` | that path from the linking note's folder; if there is none, from the vault root; if there is none, any file whose path ends like that |
+| `[[./Name]]`, `[[../Name]]` | that path from the linking note's folder, and nothing else |
+| `[[/folder/Name]]` | that path from the vault root, and nothing else |
+
+Capitals never matter, and `.md` may be left out. `[[Name|label]]` sets the
+text, `[[Name#Heading]]` jumps to a heading, `![[image.png|200]]` sets a width.
+A path that says where to look is followed strictly: if nothing is there, the
+link is marked missing rather than quietly pointed at a namesake elsewhere. A
+bare name does fall back to the whole vault, which is how Obsidian writes links
+and what existing notes rely on.
+
 ## Search
 
 The box in the header searches the current vault.

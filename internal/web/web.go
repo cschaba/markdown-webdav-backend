@@ -269,7 +269,7 @@ func (h *Handler) note(w http.ResponseWriter, r *http.Request, rel string) {
 		http.NotFound(w, r)
 		return
 	}
-	html, meta, err := h.Index.Renderer().Render(src)
+	html, meta, err := h.Index.Renderer().Render(src, rel)
 	if err != nil {
 		slog.Error("render failed", "note", rel, "err", err)
 		http.Error(w, "cannot render note", http.StatusInternalServerError)
