@@ -16,6 +16,8 @@ change flags, URLs or behaviour.
 - A note's statistics - words, characters, reading time, headings, links,
   backlinks, tasks, size, last change - shown and hidden with `i` or
   *Statistics* at the foot of the note.
+- `/dav/` lists the vaults as folders, read-only, instead of answering 404: a
+  file manager pointed at the server's WebDAV address now finds them.
 
 ## [0.1.0] - 2026-09-19
 

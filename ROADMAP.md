@@ -11,16 +11,20 @@ Before 1.0 the order may change; what is out of scope says why.
 - The version at the foot of every page, and an About page with the vault's
   statistics.
 - A note's statistics - words, reading time, links, tasks - shown with `i`.
+- `/dav/` lists the vaults, so a file manager finds them.
 
 ## Before 1.0: prove it with real clients
 
-The server is tested with `go test`, a headless browser and `curl`. Nothing
-has been synced from a real Obsidian yet, and that is the point of it.
+The server is tested with `go test`, a headless browser, `curl` and `rclone`,
+and GNOME Files has opened a vault. Nothing has been synced from a real
+Obsidian yet, and that is the point of it.
 
 - **Sync from Obsidian with Remotely Save** on Linux, macOS, iPhone and iPad:
   first sync of an existing vault, edits on two devices, renames and deletes,
   attachments, conflicts. Write down the client settings that work.
-- **Finder and the iOS Files app** as WebDAV clients.
+- **Finder and the iOS Files app** as WebDAV clients. GNOME Files on Linux
+  works: browsing and opening notes (2026-09-19); writing from it is still to
+  be tried.
 - **Build and run the Docker image** from the `Dockerfile` and `compose.yaml`,
   and publish it with each release if it proves useful.
 - Fix what those turn up. 1.0 is the version that has synced a real vault for a

@@ -25,7 +25,7 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Goal | State |
 |---|---|
 | Render Markdown to HTML | works |
-| Create and edit from Obsidian on Linux, macOS, iPhone, iPad | WebDAV server works; client setup untested |
+| Create and edit from Obsidian on Linux, macOS, iPhone, iPad | WebDAV server works; GNOME Files opens it; Obsidian's client setup untested |
 | Attachments in pages | works (`![[image.png]]`, `![[image.png\|200]]` sizes, `![](image.png)`, other files as links) |
 | Links and attachments whose file is missing | shown as a "missing" marker instead of a dead link or broken image |
 | Versioning via git | works (debounced commits) |
@@ -144,6 +144,22 @@ route is the community plugin **Remotely Save**, which syncs a local vault with 
 WebDAV server on every platform: point it at `https://your-host/dav/<vault>/`
 with the login above. On a desktop the endpoint can also simply be mounted (Finder, GNOME
 Files, `rclone`, `davfs2`).
+
+`/dav/` itself lists the vaults as folders, so a file manager can be pointed
+there and the vault opened from the list. It is read-only: files live in the
+vaults, at `/dav/<vault>/`.
+
+**GNOME Files (Nautilus) on Linux** — tested. Type the address into the path
+bar (Ctrl+L) or under *Other Locations → Connect to Server*:
+
+```
+dav://your-host:8080/dav/          plain HTTP, only on a network you trust
+davs://your-host/dav/              behind a TLS proxy
+```
+
+and log in with the login above. If it answers "The specified location is not
+supported", the WebDAV backend of GVFS is missing; on Arch it is a package of
+its own: `sudo pacman -S gvfs-dnssd`, then `nautilus -q`.
 
 ## Keyboard
 

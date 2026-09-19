@@ -15,6 +15,7 @@ Generic cross-project lessons: `~/AI-Memory/README.md`.
 | `auth.go` | the login and its throttle, the headers every response carries, the sandbox around WebDAV |
 | `main.go` | flags and `mount`: per vault, a WebDAV change updates the index and arms the committer |
 | `vaults.go` | parsing of `-vault [name=]dir[,nogit]` |
+| `davroot.go` | `/dav/` itself: the vaults as a read-only list of folders |
 | `version.go` | the version, written down here and nowhere else |
 | `tools/` | checks that need a real browser (`check-browser.sh` runs them), `release.sh`, `screenshots.sh` |
 | `.github/workflows` | `ci.yml`: Go tests and the browser checks; `release.yml`: a tag `v*` builds, tests and publishes the archives |
