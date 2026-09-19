@@ -5,8 +5,6 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
-	"crypto/subtle"
 	"errors"
 	"flag"
 	"log/slog"
@@ -63,6 +61,9 @@ func main() {
 		}
 		password = strings.TrimRight(string(content), "\r\n")
 	}
+	if password != "" && len(password) < 12 {
+		slog.Warn("the password is short; it is all that protects the vault, and it can be guessed over the network")
+	}
 	if password == "" && !*noAuth {
 		fatal("set MDWEBDAV_PASSWORD or MDWEBDAV_PASSWORD_FILE, or pass -no-auth if another layer authenticates")
 	}
@@ -95,6 +96,7 @@ func main() {
 	if !*noAuth {
 		handler = basicAuth(*user, password, mux)
 	}
+	handler = secureHeaders(handler)
 
 	server := &http.Server{Addr: *listen, Handler: handler, ReadHeaderTimeout: 10 * time.Second}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -160,8 +162,8 @@ func mount(mux *http.ServeMux, spec vaultSpec, links []web.Vault, quiet, maxWait
 			}
 		},
 	}
-	mux.Handle(davPrefix+"/"+spec.name+"/", dav)
-	mux.Handle(davPrefix+"/"+spec.name, dav)
+	mux.Handle(davPrefix+"/"+spec.name+"/", sandboxed(dav))
+	mux.Handle(davPrefix+"/"+spec.name, sandboxed(dav))
 
 	cfg := web.Config{Name: spec.name, Dir: spec.dir, Index: idx, Vaults: links}
 	if committer != nil {
@@ -173,23 +175,6 @@ func mount(mux *http.ServeMux, spec vaultSpec, links []web.Vault, quiet, maxWait
 	}
 	mux.Handle("/"+spec.name+"/", site)
 	return committer, nil
-}
-
-func basicAuth(user, password string, next http.Handler) http.Handler {
-	// Hashing first makes the comparison constant-time regardless of length.
-	wantUser, wantPass := sha256.Sum256([]byte(user)), sha256.Sum256([]byte(password))
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		u, p, ok := r.BasicAuth()
-		gotUser, gotPass := sha256.Sum256([]byte(u)), sha256.Sum256([]byte(p))
-		userOK := subtle.ConstantTimeCompare(gotUser[:], wantUser[:]) == 1
-		passOK := subtle.ConstantTimeCompare(gotPass[:], wantPass[:]) == 1
-		if !ok || !userOK || !passOK {
-			w.Header().Set("WWW-Authenticate", `Basic realm="vault", charset="UTF-8"`)
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
 }
 
 func fatal(msg string, args ...any) {
