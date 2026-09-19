@@ -1,0 +1,21 @@
+{{template "head" .}}
+<div id="graph" data-source="graph.json">
+<div id="graph-canvas"></div>
+<details id="graph-panel" open>
+<summary>Filters and groups</summary>
+<input id="graph-search" type="search" placeholder="Search notes…" aria-label="Search notes">
+<label><input type="checkbox" data-filter="tags"> Tags</label>
+<label><input type="checkbox" data-filter="attachments"> Attachments</label>
+<label><input type="checkbox" data-filter="existing"> Existing files only</label>
+<label><input type="checkbox" data-filter="orphans"> Orphans</label>
+<h2>Groups</h2>
+<p class="hint">Notes are coloured by their most common tags. Select a group to single it out.</p>
+<ul id="graph-groups"></ul>
+<p id="graph-count" class="hint"></p>
+</details>
+<p id="graph-status">Loading the graph…</p>
+<noscript><p>The graph needs JavaScript. The same links are listed as backlinks under every note, and the groups on the <a href="{{.TagsURL}}">Tags</a> page.</p></noscript>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/force-graph@1.51.4/dist/force-graph.min.js"></script>
+<script src="/-/graph.js"></script>
+{{template "foot" .}}

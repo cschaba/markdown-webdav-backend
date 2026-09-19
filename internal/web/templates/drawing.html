@@ -1,0 +1,13 @@
+{{template "head" .}}
+<article>
+<h1 class="title">{{.Title}}</h1>
+{{with .Body}}{{if .Image}}<a class="drawing" href="{{.Image}}"><picture>
+{{with .DarkImage}}<source media="(prefers-color-scheme: dark)" srcset="{{.}}">{{end}}
+<img src="{{.Image}}" alt="{{$.Title}}">
+</picture></a>{{else}}<p class="drawing-unexported">{{.Help}}</p>{{end}}{{end}}
+</article>
+<aside>
+<h2>Backlinks</h2>
+{{if .Body.Backlinks}}{{template "notelist" .Body.Backlinks}}{{else}}<p class="empty">No other note links here.</p>{{end}}
+</aside>
+{{template "foot" .}}

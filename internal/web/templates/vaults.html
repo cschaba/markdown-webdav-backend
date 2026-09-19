@@ -1,0 +1,6 @@
+{{template "head" .}}
+<h1>Vaults</h1>
+<ul class="list">
+{{range .Vaults}}<li><a href="{{.URL}}">{{.Name}}</a></li>
+{{end}}</ul>
+{{template "foot" .}}

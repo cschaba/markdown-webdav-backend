@@ -1,0 +1,108 @@
+:root {
+  color-scheme: light dark;
+  --fg: #1f2328; --muted: #656d76; --bg: #ffffff; --soft: #f6f8fa;
+  --line: #d0d7de; --link: #0969da; --warn-bg: #fff8c5; --warn-line: #d4a72c;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #e6edf3; --muted: #8d96a0; --bg: #0d1117; --soft: #161b22;
+    --line: #30363d; --link: #4493f8; --warn-bg: #3a2f00; --warn-line: #9e6a03;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0 auto; padding: 0 16px 64px; max-width: 46rem;
+  font: 17px/1.6 system-ui, sans-serif; color: var(--fg); background: var(--bg);
+}
+header {
+  display: flex; justify-content: space-between; gap: 16px; padding: 12px 0;
+  border-bottom: 1px solid var(--line); font-size: 0.9rem; color: var(--muted);
+}
+header nav:not(.crumbs) a + a { margin-left: 12px; }
+header .switch { margin-left: 12px; padding-left: 12px; border-left: 1px solid var(--line); }
+header strong { color: var(--fg); font-weight: 600; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1, h2, h3 { line-height: 1.25; }
+.warning { padding: 8px 12px; background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 6px; }
+.tags a { margin-right: 6px; font-size: 0.9rem; }
+.properties { border-collapse: collapse; font-size: 0.9rem; margin-bottom: 1rem; }
+.properties th { text-align: left; padding: 2px 16px 2px 0; color: var(--muted); font-weight: normal; vertical-align: top; }
+.list { list-style: none; padding: 0; }
+.list li { padding: 4px 0; border-bottom: 1px solid var(--line); }
+.list small, .empty { color: var(--muted); }
+aside { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+img { max-width: 100%; height: auto; }
+pre { padding: 12px; overflow-x: auto; border-radius: 6px; background: var(--soft); font-size: 0.85rem; }
+code { font-family: ui-monospace, monospace; }
+:not(pre) > code { padding: 1px 4px; border-radius: 4px; background: var(--soft); font-size: 0.9em; }
+blockquote { margin: 0; padding-left: 16px; border-left: 3px solid var(--line); color: var(--muted); }
+article table:not(.properties) { border-collapse: collapse; display: block; overflow-x: auto; }
+article table:not(.properties) th, article table:not(.properties) td { padding: 4px 10px; border: 1px solid var(--line); }
+pre.mermaid { background: none; text-align: center; }
+
+/* Foldable headings. The marker sits in the page gutter, so headings stay
+   aligned with the text; 16px is the body's side padding on a phone. */
+details.fold > summary {
+  display: flex; align-items: baseline; margin: 1.6em 0 0.6em;
+  list-style: none; cursor: pointer;
+}
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before {
+  content: "▾"; flex: none; width: 16px; margin-left: -16px;
+  font-size: 0.75rem; color: var(--muted); opacity: 0.45;
+}
+details.fold:not([open]) > summary::before { content: "▸"; opacity: 1; }
+details.fold > summary:hover::before { opacity: 1; }
+details.fold > summary > :is(h1, h2, h3, h4, h5, h6) { margin: 0; }
+details.fold:not([open]) > summary > * { color: var(--muted); }
+
+/* A link or embed whose file is not in the vault. */
+.missing { color: var(--muted); text-decoration: underline dashed; text-underline-offset: 3px; cursor: help; }
+.missing-embed {
+  display: inline-block; padding: 2px 10px; border: 1px dashed var(--line); border-radius: 6px;
+  text-decoration: none; font-size: 0.9rem;
+}
+.missing-embed::before { content: "missing: "; }
+
+/* Excalidraw drawings, shown through the picture the Obsidian plugin exports. */
+a.drawing { display: block; }
+a.drawing img { display: block; margin: 0 auto; }
+.drawing-unexported {
+  display: inline-block; padding: 2px 10px; border: 1px dashed var(--line); border-radius: 6px;
+  color: var(--muted); font-size: 0.9rem; text-decoration: none; cursor: help;
+}
+a.drawing-unexported::before { content: "drawing without image: "; }
+
+/* The graph view uses the whole window below the header. */
+body.wide { max-width: none; padding-bottom: 0; height: 100dvh; display: flex; flex-direction: column; }
+body.wide main { flex: 1; min-height: 0; display: flex; }
+#graph { position: relative; flex: 1; min-width: 0; margin: 0 -16px; }
+#graph-canvas { position: absolute; inset: 0; overflow: hidden; }
+#graph-status { position: absolute; inset: 40% 0 auto; text-align: center; color: var(--muted); }
+#graph-panel {
+  position: absolute; top: 12px; right: 16px; width: 15rem; max-height: calc(100% - 24px); overflow-y: auto;
+  padding: 10px 12px; font-size: 0.85rem; background: var(--soft); border: 1px solid var(--line); border-radius: 8px;
+}
+#graph-panel summary { cursor: pointer; font-weight: 600; }
+#graph-panel[open] summary { margin-bottom: 8px; }
+#graph-panel h2 { margin: 12px 0 4px; font-size: 0.85rem; }
+#graph-panel label { display: flex; gap: 8px; align-items: center; padding: 3px 0; }
+#graph-panel .hint { margin: 4px 0; color: var(--muted); font-size: 0.78rem; line-height: 1.35; }
+#graph-search {
+  width: 100%; margin-bottom: 6px; padding: 5px 8px; font: inherit; color: var(--fg);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+}
+#graph-groups { list-style: none; margin: 0; padding: 0; }
+#graph-groups button {
+  display: flex; gap: 8px; align-items: center; width: 100%; padding: 3px 4px; font: inherit; text-align: left;
+  color: var(--fg); background: none; border: 1px solid transparent; border-radius: 6px; cursor: pointer;
+}
+#graph-groups button:hover { background: var(--bg); }
+#graph-groups button[aria-pressed="true"] { border-color: var(--fg); background: var(--bg); }
+#graph-groups small { margin-left: auto; color: var(--muted); }
+#graph-groups .mark { flex: none; width: 10px; height: 10px; border-radius: 50%; }
+#graph-groups .mark.diamond { border-radius: 1px; transform: rotate(45deg) scale(0.85); }
+/* the library's tooltip */
+.float-tooltip-kap { padding: 4px 8px !important; font: 0.8rem/1.4 system-ui, sans-serif !important; color: var(--fg) !important; background: var(--soft) !important; border: 1px solid var(--line); border-radius: 6px !important; }
+@media (max-width: 640px) { #graph-panel { left: 16px; right: 16px; width: auto; max-height: 55%; } }

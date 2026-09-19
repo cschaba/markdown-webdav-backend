@@ -1,0 +1,7 @@
+{{template "head" .}}
+<h1>{{.Title}}</h1>
+<ul class="list">
+{{range .Body}}<li><a href="{{.URL}}">{{.Name}}{{if .IsDir}}/{{end}}</a></li>
+{{else}}<li class="empty">This folder is empty.</li>
+{{end}}</ul>
+{{template "foot" .}}

@@ -1,0 +1,7 @@
+{{template "head" .}}
+<h1>Tags</h1>
+<ul class="list">
+{{range .Body}}<li><a href="{{.URL}}">#{{.Tag}}</a> <small>{{.Count}}</small></li>
+{{else}}<li class="empty">No tags yet.</li>
+{{end}}</ul>
+{{template "foot" .}}

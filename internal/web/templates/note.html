@@ -1,0 +1,14 @@
+{{template "head" .}}
+<article>
+<h1 class="title">{{.Title}}</h1>
+{{with .Body.Tags}}<p class="tags">{{range .}}<a href="{{.URL}}">#{{.Tag}}</a> {{end}}</p>{{end}}
+{{with .Body.Properties}}<table class="properties">
+{{range .}}<tr><th>{{.Key}}</th><td>{{.Value}}</td></tr>
+{{end}}</table>{{end}}
+{{.Body.HTML}}
+</article>
+<aside>
+<h2>Backlinks</h2>
+{{if .Body.Backlinks}}{{template "notelist" .Body.Backlinks}}{{else}}<p class="empty">No other note links here.</p>{{end}}
+</aside>
+{{template "foot" .}}
