@@ -1,4 +1,4 @@
-module markdown-webdav-backend
+module github.com/cschaba/markdown-webdav-backend
 
 go 1.27.1
 

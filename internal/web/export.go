@@ -9,7 +9,7 @@ import (
 	"path"
 	"strings"
 
-	"markdown-webdav-backend/internal/index"
+	"github.com/cschaba/markdown-webdav-backend/internal/index"
 )
 
 // Export to PDF. The server does not make PDFs: it serves a page laid out for

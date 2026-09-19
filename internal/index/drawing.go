@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	"markdown-webdav-backend/internal/render"
+	"github.com/cschaba/markdown-webdav-backend/internal/render"
 )
 
 // Excalidraw drawings.

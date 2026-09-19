@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"markdown-webdav-backend/internal/index"
+	"github.com/cschaba/markdown-webdav-backend/internal/index"
 )
 
 // The test vault in testdata/vault holds one page per feature. This test is

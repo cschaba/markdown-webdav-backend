@@ -260,6 +260,15 @@ browser in the image. The page loads mermaid.js from jsDelivr, one version with
 its hash; at 5 MB it is not embedded in the binary. Serving a copy from the
 vault's host is the fix if requests to a CDN matter.
 
+**A release is a tag, and the workflow does the rest.** The version stands in
+`version.go` only; `tools/release.sh` makes the tag `v<version>` from it, and
+the release workflow refuses a tag that disagrees. It runs the same checks as
+CI, builds the archives, then unpacks one and runs the binary inside - what is
+shipped is the archive, not the repository - and only then publishes. The
+browser checks run in CI as well, since most of what they assert (focus, the
+policy, a drawn diagram, a PDF's pages) is invisible to the Go tests; their
+scripts fail when the browser is missing rather than skip.
+
 ## Known gaps
 
 - Not yet exercised with Remotely Save, Finder, or any iOS client.

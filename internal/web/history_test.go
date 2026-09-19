@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"markdown-webdav-backend/internal/index"
+	"github.com/cschaba/markdown-webdav-backend/internal/index"
 )
 
 // browser keeps cookies between requests, as far as this test needs it:

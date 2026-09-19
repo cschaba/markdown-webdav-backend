@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -17,10 +18,10 @@ import (
 
 	"golang.org/x/net/webdav"
 
-	"markdown-webdav-backend/internal/gitlog"
-	"markdown-webdav-backend/internal/index"
-	"markdown-webdav-backend/internal/vault"
-	"markdown-webdav-backend/internal/web"
+	"github.com/cschaba/markdown-webdav-backend/internal/gitlog"
+	"github.com/cschaba/markdown-webdav-backend/internal/index"
+	"github.com/cschaba/markdown-webdav-backend/internal/vault"
+	"github.com/cschaba/markdown-webdav-backend/internal/web"
 )
 
 // davPrefix is where sync clients connect: "/dav/<vault>/". The web view of a
@@ -42,7 +43,12 @@ func main() {
 	quiet := flag.Duration("commit-after", 30*time.Second, "commit once a vault was unchanged for this long")
 	maxWait := flag.Duration("commit-max-wait", 5*time.Minute, "commit at the latest this long after the first change")
 	noAuth := flag.Bool("no-auth", false, "disable the login; only for use behind something that authenticates")
+	showVersion := flag.Bool("version", false, "print the version and exit")
 	flag.Parse()
+	if *showVersion {
+		fmt.Println(version)
+		return
+	}
 	if len(specs) == 0 {
 		// Flags replace the environment rather than add to it.
 		for _, spec := range strings.Split(env("MDWEBDAV_VAULT", "./vault"), ";") {
@@ -102,7 +108,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	go func() {
-		slog.Info("serving", "listen", *listen)
+		slog.Info("serving", "listen", *listen, "version", version)
 		if err := server.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 			fatal("server failed", "err", err)
 		}

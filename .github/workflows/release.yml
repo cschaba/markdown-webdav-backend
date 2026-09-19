@@ -1,0 +1,86 @@
+name: Release
+
+# Pushing the tag v<version> publishes the release: a tag alone leaves the
+# Releases page empty. tools/release.sh makes and pushes the tag.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  release:
+    name: Build, test the archives, publish
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # to create the release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: The tag must be the version in version.go
+        run: |
+          version=$(go run . -version)
+          if [[ "v$version" != "$GITHUB_REF_NAME" ]]; then
+            echo "tag $GITHUB_REF_NAME, but version.go says $version" >&2; exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Release notes from the changelog
+        run: |
+          # the section of this version, without its heading
+          awk -v v="$VERSION" '/^\[[^]]+\]: / { next } $1 == "##" { on = ($2 == "[" v "]"); next } on' CHANGELOG.md > notes.md
+          if [[ ! -s notes.md ]]; then
+            echo "CHANGELOG.md has no section [$VERSION]" >&2; exit 1
+          fi
+          cat notes.md
+
+      - name: Build the archives
+        run: |
+          mkdir dist
+          for target in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do
+            name="markdown-webdav-backend-$VERSION-${target%/*}-${target#*/}"
+            mkdir "dist/$name"
+            GOOS=${target%/*} GOARCH=${target#*/} CGO_ENABLED=0 \
+              go build -trimpath -ldflags="-s -w" -o "dist/$name/markdown-webdav-backend" .
+            cp README.md LICENSE CHANGELOG.md "dist/$name/"
+            tar -C dist -czf "dist/$name.tar.gz" "$name"
+            rm -r "dist/$name"
+          done
+          (cd dist && sha256sum ./*.tar.gz > SHA256SUMS && cat SHA256SUMS)
+
+      # What is shipped is the archive, not the repository: unpack it and run
+      # what is inside.
+      - name: Test the archive that is shipped
+        run: |
+          mkdir unpacked
+          (cd dist && sha256sum -c SHA256SUMS)
+          tar -C unpacked -xzf "dist/markdown-webdav-backend-$VERSION-linux-amd64.tar.gz"
+          dir="unpacked/markdown-webdav-backend-$VERSION-linux-amd64"
+          ls -l "$dir"
+          for file in markdown-webdav-backend README.md LICENSE CHANGELOG.md; do
+            [[ -s "$dir/$file" ]] || { echo "missing in the archive: $file" >&2; exit 1; }
+          done
+          got=$("$dir/markdown-webdav-backend" -version)
+          [[ "$got" == "$VERSION" ]] || { echo "the shipped binary says $got" >&2; exit 1; }
+          # and it serves a page
+          "$dir/markdown-webdav-backend" -no-auth -listen 127.0.0.1:18080 -vault test=./testdata/vault,nogit &
+          server=$!
+          for _ in $(seq 1 50); do curl -s -o /dev/null http://127.0.0.1:18080/ && break; sleep 0.1; done
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/test/)
+          kill $server
+          [[ "$code" == "200" ]] || { echo "the shipped binary answered $code" >&2; exit 1; }
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "$VERSION" --notes-file notes.md \
+            dist/*.tar.gz dist/SHA256SUMS

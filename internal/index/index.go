@@ -15,7 +15,7 @@ import (
 	"sync"
 	"time"
 
-	"markdown-webdav-backend/internal/render"
+	"github.com/cschaba/markdown-webdav-backend/internal/render"
 )
 
 type Note struct {

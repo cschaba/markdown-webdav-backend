@@ -10,7 +10,15 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-for tool in chromium pdfinfo pdftotext curl; do
+# CHROME=/path/to/chrome where it is not called chromium, as on a CI runner
+browser=${CHROME:-}
+if [[ -z $browser ]]; then
+    for candidate in chromium chromium-browser google-chrome google-chrome-stable; do
+        if command -v "$candidate" >/dev/null; then browser=$candidate; break; fi
+    done
+fi
+[[ -n $browser ]] || { echo "missing: a Chromium or Chrome (set CHROME=) - this check cannot run without it" >&2; exit 2; }
+for tool in pdfinfo pdftotext curl; do
     command -v "$tool" >/dev/null || { echo "missing: $tool - this check cannot run without it" >&2; exit 2; }
 done
 [[ -x ./markdown-webdav-backend ]] || { echo "build first: go build" >&2; exit 2; }
@@ -30,7 +38,7 @@ pass() { echo "ok    $*"; }
 
 # pdf <name> <url>: print to $out/<name>.pdf
 pdf() {
-    timeout 90 chromium --headless=new --no-sandbox --no-pdf-header-footer --virtual-time-budget=8000 \
+    timeout 90 "$browser" --headless=new --no-sandbox --no-pdf-header-footer --virtual-time-budget=8000 \
         --print-to-pdf="$out/$1.pdf" "$2" >/dev/null 2>&1 || true
     [[ -s "$out/$1.pdf" ]] || { fail "$1: no PDF written"; return 1; }
 }
