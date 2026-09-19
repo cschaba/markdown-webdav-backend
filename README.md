@@ -29,6 +29,7 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Foldable headings, expanded by default | works, without JavaScript |
 | Several vaults, switchable in the browser | works |
 | Graph view of notes and links, coloured by tag | works, loads the force-graph library from a CDN |
+| About page: the version, a link to the source, the vault's statistics | works |
 | Mermaid diagrams | works, rendered in the browser; loads mermaid.js from a CDN |
 | Syntax highlighting | works |
 | Excalidraw drawings | works through the plugin's exported picture, see below |
@@ -402,7 +403,12 @@ If a commit fails, every rendered page shows a warning until one succeeds.
 
 ## Versions and licence
 
-`markdown-webdav-backend -version` prints the version; what changed between
+`markdown-webdav-backend -version` prints the version, and the foot of every
+page shows it. It links to `/<vault>/-/about`, which also links to the source
+and the release notes and counts the vault: notes, drawings, attachments,
+folders, tags, links and how many of them are missing, the size, and the last
+change. Files and folders whose name starts with a dot, the git history among
+them, are not counted. What changed between
 versions is in [CHANGELOG.md](CHANGELOG.md). Before 1.0 a minor version may
 change flags, URLs or behaviour.
 

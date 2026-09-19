@@ -31,6 +31,9 @@ this vault it must show this page as the hub, the two drawings in a second
 colour, `v1.2 plan` in grey (its front matter is broken, so it has no tags), and
 every missing file of page 04 as a hollow ring.
 
+Nor is the **About page**, linked from the version at the foot of every page:
+the server's version, the source on GitHub, and this vault counted.
+
 # Links
 
 - By name: [[01 Formatting]]

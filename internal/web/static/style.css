@@ -87,6 +87,7 @@ h1, h2, h3 { line-height: 1.25; }
 .list { list-style: none; padding: 0; }
 .list li { padding: 4px 0; border-bottom: 1px solid var(--line); }
 .list small, .empty { color: var(--muted); }
+main > .hint { color: var(--muted); font-size: 0.85rem; }
 aside { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--line); }
 img { max-width: 100%; height: auto; }
 pre { padding: 12px; overflow-x: auto; border-radius: 6px; background: var(--soft); font-size: 0.85rem; }
@@ -173,7 +174,8 @@ body.wide main { flex: 1; min-height: 0; display: flex; }
 @media (max-width: 640px) { #graph-panel { left: 16px; right: 16px; width: auto; max-height: 55%; } }
 
 footer { display: flex; justify-content: flex-end; gap: 16px; margin-top: 3rem; padding-top: 12px; border-top: 1px solid var(--line); font-size: 0.85rem; }
-footer a, footer button { color: var(--muted); }
+footer a, footer button, footer .about { color: var(--muted); }
+footer .about { margin-right: auto; }
 footer button { padding: 0; font: inherit; background: none; border: 0; cursor: pointer; }
 footer button:hover { text-decoration: underline; }
 
@@ -201,6 +203,7 @@ kbd {
 #keys-help td:first-child { width: 6.5rem; white-space: nowrap; }
 #keys-help .keys-switch { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 0.9rem; }
 #keys-help .hint { margin: 4px 0 0; color: var(--muted); font-size: 0.8rem; }
+#keys-help .keys-about { margin: 16px 0 0; padding-top: 8px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
 /* f: a letter on every link */
 .key-hints { position: fixed; inset: 0; z-index: 40; pointer-events: none; }
 .key-hints span {

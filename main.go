@@ -96,7 +96,7 @@ func main() {
 		fatal("cannot build assets", "err", err)
 	}
 	mux.Handle("GET "+web.AssetsPath, assets)
-	mux.Handle("GET /{$}", web.Home(links))
+	mux.Handle("GET /{$}", web.Home(links, version))
 
 	var handler http.Handler = mux
 	if !*noAuth {
@@ -171,7 +171,7 @@ func mount(mux *http.ServeMux, spec vaultSpec, links []web.Vault, quiet, maxWait
 	mux.Handle(davPrefix+"/"+spec.name+"/", sandboxed(dav))
 	mux.Handle(davPrefix+"/"+spec.name, sandboxed(dav))
 
-	cfg := web.Config{Name: spec.name, Dir: spec.dir, Index: idx, Vaults: links}
+	cfg := web.Config{Name: spec.name, Version: version, Dir: spec.dir, Index: idx, Vaults: links}
 	if committer != nil {
 		cfg.Warning = committer.LastError
 	}
