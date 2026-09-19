@@ -45,6 +45,8 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Live results while typing, highlighted matches, history view in the browser | not started |
 | Logseq | untested |
 
+What is still open, and in what order, is in [ROADMAP.md](ROADMAP.md).
+
 What the first day of building this cost in time and tokens is recorded in
 [docs/EFFORT-2026-09-19.md](docs/EFFORT-2026-09-19.md).
 
