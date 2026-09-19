@@ -138,6 +138,11 @@ of every page.
 real focus, shown by a ring, so *Enter* opens it and a screen reader announces
 it. A heading is focused through the control that folds its section.
 
+**In the help** the scrolling keys (`j` `k` `d` `u` `gg` `G`) scroll the help,
+and every other character does nothing. It is not left to the browser either,
+which in Firefox would open its own find bar on `/` or on any letter. The same
+holds in the help of the slide show.
+
 **Accessibility.** Single-key shortcuts can clash with dictation and with a
 screen reader's own keys, so they can be switched off in the help (WCAG 2.1,
 2.1.4); the choice is remembered, and the help stays reachable from the footer.

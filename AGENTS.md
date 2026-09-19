@@ -121,6 +121,9 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
      Ctrl/Alt/Meta.
   3. **A key is added to `BINDINGS` and nowhere else**: the help is built from
      it, and a Go test fails if the README's table differs.
+  While the help is open, only bindings marked `inHelp` act, on the dialog;
+  every other character is prevented, or Firefox answers it with its find bar
+  (`slides.js` does the same for its help). Space is left to the checkbox.
   `tools/check-keyboard.mjs` presses real keys in a browser (usage in the file);
   nothing about keys can be tested from the HTML. When synthesising keys over
   the DevTools protocol, named keys need `code` and `nativeVirtualKeyCode`, or

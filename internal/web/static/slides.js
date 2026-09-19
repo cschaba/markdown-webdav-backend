@@ -134,9 +134,26 @@
     if (!dialog.open) dialog.showModal();
   }
 
+  // In the help the letters scroll it, as they do in the help of the other
+  // pages (keys.js), and no other character reaches the browser, which would
+  // open its own find bar over the help. Space stays the close button's.
+  function helpKey(e, key) {
+    if (lettersOff || e.key.length !== 1 || e.key === " ") return;
+    e.preventDefault();
+    var by = { j: 70, k: -70, d: dialog.clientHeight / 2, u: -dialog.clientHeight / 2 }[key];
+    if (by) dialog.scrollBy({ top: by });
+    else if (key === "gg") dialog.scrollTo({ top: 0 });
+    else if (key === "G") dialog.scrollTo({ top: dialog.scrollHeight });
+  }
+
   var pendingG = 0;
   addEventListener("keydown", function (e) {
-    if (dialog.open || e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (dialog.open) {
+      var double = e.key === "g" && Date.now() - pendingG < 1200;
+      pendingG = e.key === "g" && !double ? Date.now() : 0;
+      return helpKey(e, double ? "gg" : e.key);
+    }
     if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
     // Space and Enter on a focused button or link are that control's own
     if ((e.key === " " || e.key === "Enter") && e.target.closest("button, a, summary")) return;

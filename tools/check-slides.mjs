@@ -141,6 +141,20 @@ check("? lists the keys, in a dialog", help.open && help.rows >= 10, JSON.string
 const before = await current();
 await press("ArrowRight");
 check("while it is open the slides rest", await current() === before, await current());
+// as in the help of the other pages (check-keyboard.mjs): letters scroll the
+// help or do nothing, and none is left to the browser's find bar
+await send("Emulation.setDeviceMetricsOverride", { width: 1000, height: 300, deviceScaleFactor: 1, mobile: false });
+await js(`window.__prevented = {}; addEventListener("keydown", e => { __prevented[e.key] = e.defaultPrevented; })`);
+await press("j"); await sleep(200);
+const helpJ = await js(`document.getElementById("deck-help").scrollTop`);
+await press("G"); await sleep(200);
+const helpG = await js(`(d => d.scrollTop + d.clientHeight - d.scrollHeight)(document.getElementById("deck-help"))`);
+await press("g"); await press("g"); await sleep(200);
+check("j, G and gg scroll the help", helpJ > 0 && Math.abs(helpG) < 4 && await js(`document.getElementById("deck-help").scrollTop`) === 0, helpJ + " " + helpG);
+await press("/"); await press("q"); await press("l"); await sleep(300);
+const taken = JSON.parse(await js(`JSON.stringify(__prevented)`));
+check("the other letters do nothing there, and the browser does not get them", ["/", "q", "l", "j", "G", "g"].every(k => taken[k] === true) && await current() === before && await js(`document.getElementById("deck-help").open`), JSON.stringify(taken));
+await send("Emulation.setDeviceMetricsOverride", { width: 1000, height: 640, deviceScaleFactor: 1, mobile: false });
 await press("Escape"); await sleep(200);
 check("Esc closes it, and does not leave the show", await js(`!document.getElementById("deck-help").open && location.pathname.endsWith("/-/slides")`), await js("location.pathname"));
 await press("q"); await sleep(900);

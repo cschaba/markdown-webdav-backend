@@ -146,9 +146,36 @@ await press("?"); await sleep(200);
 const help = JSON.parse(await js(`JSON.stringify({ open: document.getElementById("keys-help").open, modal: document.getElementById("keys-help").matches(":modal"), rows: document.querySelectorAll("#keys-help tr").length, inside: !!document.activeElement.closest("#keys-help"), slash: [...document.querySelectorAll("#keys-help kbd")].some(k => k.textContent === "/") })`));
 check("? opens the help, as a modal dialog with the focus in it", help.open && help.modal && help.inside, JSON.stringify(help));
 check("it lists the keys", help.rows >= 18 && help.slash, JSON.stringify(help));
+// The scrolling keys scroll the help, in a window too low to show all of it.
+// Every other character is taken from the browser, which would open its own
+// find bar; no browser to be driven here has one, so what is checked is that
+// the key's default was prevented.
+await send("Emulation.setDeviceMetricsOverride", { width: 1000, height: 400, deviceScaleFactor: 1, mobile: false });
+await js(`window.__prevented = {}; addEventListener("keydown", e => { __prevented[e.key] = e.defaultPrevented; })`);
 const before = await js("scrollY");
+const helpTop = () => js(`document.getElementById("keys-help").scrollTop`);
 await press("j"); await settle();
-check("while it is open the keys rest", await js("scrollY") === before, await js("scrollY"));
+const helpJ = await helpTop();
+check("while it is open, j scrolls the help", helpJ > 0, helpJ);
+await press("k"); await settle();
+check("k scrolls it back", await helpTop() < helpJ, await helpTop());
+await press("d"); await settle();
+check("d scrolls it half its height", Math.abs(await helpTop() - await js(`document.getElementById("keys-help").clientHeight / 2`)) < 40, await helpTop());
+await press("G"); await settle();
+check("G goes to its end", await js(`(d => Math.abs(d.scrollTop + d.clientHeight - d.scrollHeight) < 4)(document.getElementById("keys-help"))`), await helpTop());
+await press("g"); await sleep(100);
+check("a pending g is shown on the help, not under it", await js(`(b => !b.hidden && !!b.closest("#keys-help"))(document.querySelector(".key-pending"))`), await js(`document.querySelector(".key-pending").parentElement.tagName`));
+await press("g"); await settle();
+check("gg goes to its top", await helpTop() === 0, await helpTop());
+check("the page behind it stays where it was", await js("scrollY") === before, await js("scrollY"));
+await type("/xf"); await press("z"); await press("a");
+const taken = JSON.parse(await js(`JSON.stringify(__prevented)`));
+check("the other keys do nothing, and the browser does not get them", ["/", "x", "f", "z", "a", "j", "G"].every(k => taken[k] === true) && await js(`document.getElementById("keys-help").open && !document.querySelector(".key-hints") && !!document.activeElement.closest("#keys-help")`), JSON.stringify(taken));
+await js(`document.getElementById("keys-enabled").focus()`);
+await press(" ");
+check("Space is still the checkbox's", taken[" "] !== true && await js(`!document.getElementById("keys-enabled").checked`), "not toggled");
+await press(" ");
+await send("Emulation.setDeviceMetricsOverride", { width: 1000, height: 700, deviceScaleFactor: 1, mobile: false });
 // A modal dialog makes the rest of the page inert: Tab goes through the
 // dialog and on to the browser's own controls (the page then reports <body>),
 // never to a link behind it.
