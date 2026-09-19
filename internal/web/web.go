@@ -22,7 +22,7 @@ import (
 	"markdown-webdav-backend/internal/render"
 )
 
-//go:embed templates/*.html static/style.css static/graph.js static/print.js static/keys.js
+//go:embed templates/*.html static/style.css static/graph.js static/print.js static/keys.js static/slides.js
 var assets embed.FS
 
 var templates = template.Must(template.ParseFS(assets, "templates/*.html"))
@@ -58,6 +58,7 @@ func New(cfg Config) (*Handler, error) {
 	h := &Handler{Config: cfg, prefix: "/" + cfg.Name, root: root, mux: http.NewServeMux()}
 	h.mux.HandleFunc("GET /-/tags", h.tags)
 	h.mux.HandleFunc("GET /-/export", h.export)
+	h.mux.HandleFunc("GET /-/slides", h.slides)
 	h.mux.HandleFunc("GET /-/search", h.search)
 	h.mux.HandleFunc("POST /-/search/clear", h.clearHistory)
 	h.mux.HandleFunc("GET /-/graph", h.graph)
@@ -82,6 +83,7 @@ type page struct {
 	GraphURL  string
 	SearchURL string
 	ExportURL string   // set on pages that can be exported to PDF
+	SlidesURL string   // set on notes that have slide separators
 	Query     string   // what the search box shows
 	History   []string // recent searches, offered by the search box
 	Wide      bool     // the page uses the whole window, not a text column
@@ -103,6 +105,9 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, name string, ti
 	}
 	if e, ok := body.(exportable); ok {
 		p.ExportURL = h.exportURL(e.vaultPath())
+	}
+	if note, ok := body.(noteBody); ok && note.Slides > 1 {
+		p.SlidesURL = h.slidesURL(note.Path)
 	}
 	if h.Warning != nil {
 		if err := h.Warning(); err != nil {
@@ -161,6 +166,11 @@ func Assets() (http.Handler, error) {
 		return nil, err
 	}
 	serve("keys.js", "text/javascript; charset=utf-8", keysScript)
+	slidesScript, err := assets.ReadFile("static/slides.js")
+	if err != nil {
+		return nil, err
+	}
+	serve("slides.js", "text/javascript; charset=utf-8", slidesScript)
 	return mux, nil
 }
 
@@ -304,6 +314,7 @@ type tagLink struct{ Tag, URL string }
 
 type noteBody struct {
 	Path       string
+	Slides     int // how many slides the note would make
 	HTML       template.HTML
 	Properties []property
 	Tags       []tagLink
@@ -322,7 +333,7 @@ func (h *Handler) note(w http.ResponseWriter, r *http.Request, rel string) {
 		http.Error(w, "cannot render note", http.StatusInternalServerError)
 		return
 	}
-	body := noteBody{Path: rel, HTML: html, Backlinks: h.Index.Backlinks(rel)}
+	body := noteBody{Path: rel, Slides: meta.Slides, HTML: html, Backlinks: h.Index.Backlinks(rel)}
 	for _, tag := range meta.Tags {
 		body.Tags = append(body.Tags, tagLink{tag, h.Index.TagURL(tag)})
 	}

@@ -65,6 +65,7 @@ type Meta struct {
 	Frontmatter map[string]any
 	Tags        []string // front matter and inline, lowercased, sorted, unique
 	Headings    []string // the ids of the note's headings, in order
+	Slides      int      // how many slides the note makes, see slides.go; 1 if it has no separator
 
 	needsMermaid bool // an embedded note has diagrams; the page must load the script
 	// Links holds the targets of everything that points at another vault
@@ -75,6 +76,7 @@ type Meta struct {
 
 type Renderer struct {
 	md    goldmark.Markdown
+	flat  goldmark.Markdown // the same without foldable sections, for slides
 	links LinkResolver
 }
 
@@ -82,8 +84,8 @@ type Renderer struct {
 // it and the resolver's URLs carry the vault's URL prefix.
 
 func New(links LinkResolver, tagURL string) *Renderer {
-	return &Renderer{links: links, md: goldmark.New(
-		goldmark.WithExtensions(
+	build := func(fold bool) goldmark.Markdown {
+		extensions := []goldmark.Extender{
 			extension.GFM,
 			extension.Footnote,
 			&frontmatter.Extender{},
@@ -96,18 +98,24 @@ func New(links LinkResolver, tagURL string) *Renderer {
 				highlighting.WithFormatOptions(chromahtml.WithClasses(true)),
 			),
 			pageBreakExtender{},
-			foldExtender{},
-		),
-		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
-		// Raw HTML stays disabled (goldmark's default): notes may be pasted
-		// from anywhere, and the viewer runs with the owner's session.
-	)}
+		}
+		if fold {
+			extensions = append(extensions, foldExtender{})
+		}
+		return goldmark.New(
+			goldmark.WithExtensions(extensions...),
+			goldmark.WithParserOptions(parser.WithAutoHeadingID()),
+			// Raw HTML stays disabled (goldmark's default): notes may be pasted
+			// from anywhere, and the viewer runs with the owner's session.
+		)
+	}
+	return &Renderer{links: links, md: build(true), flat: build(false)}
 }
 
 // Render returns the HTML of a note together with its metadata. from is the
 // note's vault path: its links are resolved from where it stands.
 func (r *Renderer) Render(src []byte, from string) (template.HTML, Meta, error) {
-	doc, meta := r.parse(src, from, true, false)
+	doc, meta := r.parse(r.md, src, from, true, false)
 	var buf bytes.Buffer
 	if err := r.md.Renderer().Render(&buf, src, doc); err != nil {
 		return "", meta, err
@@ -117,7 +125,7 @@ func (r *Renderer) Render(src []byte, from string) (template.HTML, Meta, error) 
 
 // Meta parses a note without rendering it.
 func (r *Renderer) Meta(src []byte) Meta {
-	_, meta := r.parse(src, "", false, false)
+	_, meta := r.parse(r.md, src, "", false, false)
 	return meta
 }
 
@@ -128,9 +136,9 @@ func (r *Renderer) Meta(src []byte) Meta {
 //
 // embedded says that the note is being rendered to be shown inside another,
 // see embed.go.
-func (r *Renderer) parse(src []byte, from string, forRender, embedded bool) (ast.Node, Meta) {
+func (r *Renderer) parse(md goldmark.Markdown, src []byte, from string, forRender, embedded bool) (ast.Node, Meta) {
 	ctx := parser.NewContext(parser.WithIDs(newHeadingIDs()))
-	doc := r.md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
+	doc := md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 
 	var meta Meta
 	tags := map[string]bool{}
@@ -145,10 +153,19 @@ func (r *Renderer) parse(src []byte, from string, forRender, embedded bool) (ast
 		}
 	}
 	// The headings first: a link further up may point at one further down.
+	meta.Slides = 1
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if heading, ok := n.(*ast.Heading); ok && entering {
-			if id, ok := heading.AttributeString("id"); ok {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		switch n := n.(type) {
+		case *ast.Heading:
+			if id, ok := n.AttributeString("id"); ok {
 				meta.Headings = append(meta.Headings, string(id.([]byte)))
+			}
+		case *ast.ThematicBreak:
+			if separatesSlides(n) {
+				meta.Slides++
 			}
 		}
 		return ast.WalkContinue, nil

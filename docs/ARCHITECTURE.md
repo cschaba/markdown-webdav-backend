@@ -122,6 +122,20 @@ every link to such a note showed a folder listing. Found when the PDF check
 printed a listing instead of a note. The note now has the URL, because links
 lead to notes; folder URLs end in a slash.
 
+**A slide has one size, in pixels, everywhere.** Slides are split at top-level
+`---`, as Obsidian's Slides plugin does, so a deck written there works here.
+Each slide is laid out at a fixed size (1280x720 for 16:9) and scaled as a
+whole to the window; the PDF page is declared in the same pixels. Responsive
+slides would reflow differently in every window and again on paper; a fixed
+size makes the slide show, the export preview and the PDF the same picture.
+Too much content shrinks until it fits, since a cut-off slide loses what the
+author wrote. The deck is parsed without foldable sections, which would run
+across separators. Two lessons from checking the PDFs: a page declared in
+inches was a rounding error smaller than its slide, and leftover boxes after a
+page-filling slide print a blank sheet, so only slides are printed; and
+diagrams must be drawn before any scaling, or their labels are cut off when
+the scale changes.
+
 **Keyboard support moves the real focus.** A Vim-like "cursor" could have been a
 highlight of our own; instead `j`/`k` on a list and `]]`/`[[` in a note move
 the browser's focus, to links and to the `<summary>` that folds a heading's

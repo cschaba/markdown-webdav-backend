@@ -188,9 +188,10 @@ func TestExportSettingsAreRemembered(t *testing.T) {
 	if got := selected(open("path=10+Printing.md&set=1&size=A5")); got != "A5, sub off" || b.cookie.Value != "size=A5" {
 		t.Errorf("sub pages switched off: %s, cookie %q", got, b.cookie.Value)
 	}
-	// only known values are stored, and a damaged cookie is ignored
+	// only known values are stored: a size that is none leaves the remembered
+	// one alone, and "sub=yes" is not "1"
 	open("path=10+Printing.md&set=1&size=%3Cscript%3E&sub=yes")
-	if b.cookie.Value != "size=A4" {
+	if b.cookie.Value != "size=A5" {
 		t.Errorf("stored %q", b.cookie.Value)
 	}
 	for _, value := range []string{"%zz", "size=Poster&sub=maybe", strings.Repeat("x", 3000)} {

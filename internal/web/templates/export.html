@@ -12,13 +12,23 @@
 <input type="hidden" name="path" value="{{.Path}}">
 <input type="hidden" name="set" value="1">
 <a class="back" href="{{.BackURL}}">← Back</a>
-<label>Page size <select name="size">{{range .Sizes}}<option{{if eq .Name $.Size.Name}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+<label>Format <select name="format"><option value="book"{{if eq .Format "book"}} selected{{end}}>Book</option><option value="slides"{{if eq .Format "slides"}} selected{{end}}>Slides</option></select></label>
+{{if eq .Format "slides"}}<label>Slide size <select name="size">{{range .SlideSizes}}<option{{if eq .Name $.SlideSize.Name}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+{{else}}<label>Page size <select name="size">{{range .Sizes}}<option{{if eq .Name $.Size.Name}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+{{end}}
 <label{{if not .HasSub}} class="disabled" title="There are no sub pages here"{{end}}><input type="checkbox" name="sub" value="1"{{if .Sub}} checked{{end}}{{if not .HasSub}} disabled{{end}}> Include sub pages</label>
 <noscript><button type="submit">Apply</button></noscript>
 <button type="button" class="primary" id="print">Print / Save as PDF</button>
-<p class="hint">Changes apply at once and are remembered for the next export. Choose “Save as PDF” in the print dialog; its “headers and footers” option adds page numbers, if wanted. {{len .Docs}} {{if eq (len .Docs) 1}}note{{else}}notes{{end}}. A line of its own saying <code>\pagebreak</code> starts a new page.</p>
+<p class="hint">Changes apply at once and are remembered for the next export. Choose “Save as PDF” in the print dialog; its “headers and footers” option adds page numbers, if wanted. {{len .Docs}} {{if eq (len .Docs) 1}}note{{else}}notes{{end}}{{if eq .Format "slides"}}, {{len .Slides}} {{if eq (len .Slides) 1}}slide{{else}}slides{{end}}: a line of <code>---</code> between blank lines separates them, one slide a page{{else}}. A line of its own saying <code>\pagebreak</code> starts a new page{{end}}.</p>
 </form>
-<main class="paper" style="width: {{.Size.W}}mm; padding: {{.Size.Top}}mm {{.Size.Side}}mm {{.Size.Bottom}}mm;">
+{{if eq .Format "slides"}}<main class="paper sheets" id="sheets" style="--slide-w: {{.SlideSize.W}}; --slide-h: {{.SlideSize.H}};">
+{{range .Slides}}<section class="slide"><div class="slide-content">
+{{.HTML}}</div></section>
+{{else}}<p class="empty">There is nothing to export here.</p>
+{{end}}</main>
+{{if .Mermaid}}<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script><script>mermaid.initialize({startOnLoad: false});</script>
+{{end}}<script src="/-/slides.js"></script>
+{{else}}<main class="paper" style="width: {{.Size.W}}mm; padding: {{.Size.Top}}mm {{.Size.Side}}mm {{.Size.Bottom}}mm;">
 <div class="paper-content" id="paper-content">
 {{if gt (len .Docs) 1}}<section class="doc contents">
 <h1 class="doc-title">{{.Title}}</h1>
@@ -33,6 +43,6 @@
 {{else}}<p class="empty">There is nothing to export here.</p>
 {{end}}</div>
 </main>
-<script src="/-/print.js"></script>
+{{end}}<script src="/-/print.js"></script>
 </body>
 </html>

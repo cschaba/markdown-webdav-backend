@@ -42,8 +42,10 @@ var pageSizes = []pageSize{
 	{Name: "Legal", css: "legal portrait", W: 215.9, H: 355.6, Top: 22, Side: 20, Bottom: 26},
 }
 
-// The page size and the sub pages switch are remembered in a cookie, like the
-// search history and for the same reason: there is nowhere else to keep them.
+// The page sizes (one for books, one for slides) and the sub pages switch are
+// remembered in a cookie, like the search history and for the same reason:
+// there is nowhere else to keep them. The format is not: whether a note is a
+// deck of slides is a matter of the note, not of the reader's habits.
 const exportCookie = "export-settings"
 
 type exportDoc struct {
@@ -62,9 +64,15 @@ type exportPage struct {
 	Size    pageSize
 	Sizes   []pageSize
 	Sub     bool
-	HasSub  bool // there are sub pages to include
-	Docs    []exportDoc
-	PageCSS template.CSS
+	// Format "slides" prints one slide a page, see slides.go; else a book.
+	Format     string
+	SlideSize  slideSize
+	SlideSizes []slideSize
+	Slides     []slide
+	Mermaid    bool // slides with a diagram: the page includes the script
+	HasSub     bool // there are sub pages to include
+	Docs       []exportDoc
+	PageCSS    template.CSS
 }
 
 func (h *Handler) export(w http.ResponseWriter, r *http.Request) {
@@ -74,30 +82,57 @@ func (h *Handler) export(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	p := exportPage{Vault: h.Name, Path: rel, Action: h.prefix + "/-/export", Sizes: pageSizes, Size: pageSizes[0]}
+	p := exportPage{Vault: h.Name, Path: rel, Action: h.prefix + "/-/export", Sizes: pageSizes, Size: pageSizes[0],
+		Format: "book", SlideSizes: slideSizes, SlideSize: slideSizes[0]}
+	if q.Get("format") == "slides" {
+		p.Format = "slides"
+	}
 	// The form says set=1: then what it sends is the choice, a missing "sub"
 	// included, and is remembered. A plain link, as in a page's footer, says
 	// nothing, and gets what was chosen last.
 	chosen := q.Get("set") == "1" || q.Has("size") || q.Has("sub")
-	settings := q
-	if !chosen {
-		if cookie, err := r.Cookie(exportCookie); err == nil {
-			if saved, err := url.ParseQuery(cookie.Value); err == nil {
-				settings = saved
+	saved := url.Values{}
+	if cookie, err := r.Cookie(exportCookie); err == nil {
+		if values, err := url.ParseQuery(cookie.Value); err == nil {
+			saved = values
+		}
+	}
+	// One "size" field serves both formats; which list it is looked up in, and
+	// under which name it is remembered, depends on the format.
+	sizeKey := map[string]string{"book": "size", "slides": "ssize"}[p.Format]
+	size, sub := saved.Get(sizeKey), saved.Get("sub")
+	if chosen {
+		size, sub = q.Get("size"), q.Get("sub")
+	}
+	p.Sub = sub == "1"
+	// Switching the format sends the form as it stands, with the size of the
+	// format that is being left ("format=book&size=16:9"). That is no choice of
+	// a size: the one remembered for the new format applies, and stays remembered.
+	for _, candidate := range []string{saved.Get(sizeKey), size} { // the later match wins
+		for _, s := range pageSizes {
+			if p.Format == "book" && strings.EqualFold(s.Name, candidate) {
+				p.Size = s
+			}
+		}
+		for _, s := range slideSizes {
+			if p.Format == "slides" && strings.EqualFold(s.Name, candidate) {
+				p.SlideSize = s
 			}
 		}
 	}
-	p.Sub = settings.Get("sub") == "1"
-	for _, size := range pageSizes {
-		if strings.EqualFold(size.Name, settings.Get("size")) {
-			p.Size = size
-		}
-	}
 	if chosen {
-		saved := url.Values{"size": {p.Size.Name}} // the validated values, not the request's
-		if p.Sub {
-			saved.Set("sub", "1")
+		// the validated values, not the request's; the other format's size is kept
+		keep := url.Values{}
+		for _, key := range []string{"size", "ssize"} {
+			if v := saved.Get(key); v != "" && len(v) < 16 {
+				keep.Set(key, v)
+			}
 		}
+		keep.Set(sizeKey, map[string]string{"book": p.Size.Name, "slides": p.SlideSize.Name}[p.Format])
+		if p.Sub {
+			keep.Set("sub", "1")
+		}
+		saved = keep
 		http.SetCookie(w, &http.Cookie{
 			Name: exportCookie, Value: saved.Encode(), Path: h.prefix + "/-/export", MaxAge: 365 * 24 * 60 * 60,
 			HttpOnly: true, SameSite: http.SameSiteLaxMode,
@@ -129,6 +164,26 @@ func (h *Handler) export(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, note := range notes {
+		if p.Format == "slides" {
+			if note.Drawing {
+				continue
+			}
+			src, err := h.root.ReadFile(note.Path)
+			if err != nil {
+				continue
+			}
+			deck, err := h.Index.Renderer().RenderSlides(src, note.Path)
+			if err != nil {
+				slog.Error("render failed", "note", note.Path, "err", err)
+				continue
+			}
+			for _, html := range deck.Slides {
+				p.Slides = append(p.Slides, slide{N: len(p.Slides) + 1, HTML: html})
+			}
+			p.Mermaid = p.Mermaid || deck.Mermaid
+			p.Docs = append(p.Docs, exportDoc{Title: note.Title})
+			continue
+		}
 		doc := exportDoc{Title: note.Title, URL: note.URL}
 		if note.Drawing {
 			image, _ := h.Index.DrawingImages(note.Path)
@@ -154,6 +209,10 @@ func (h *Handler) export(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p.PageCSS = template.CSS(fmt.Sprintf("@page { size: %s; margin: %gmm %gmm %gmm; }", p.Size.css, p.Size.Top, p.Size.Side, p.Size.Bottom))
+	if p.Format == "slides" {
+		// The page is the slide: same proportions, no margin of its own.
+		p.PageCSS = template.CSS(fmt.Sprintf("@page { size: %s; margin: 0; }", p.SlideSize.css()))
+	}
 
 	var buf strings.Builder
 	if err := templates.ExecuteTemplate(&buf, "export.html", p); err != nil {

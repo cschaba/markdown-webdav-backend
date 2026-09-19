@@ -427,7 +427,7 @@ func TestFixtureVault(t *testing.T) {
 	expect("v1.2 plan", body("/test/v1.2%20plan"), []string{"this body text must still render"}, nil)
 
 	tags := regexp.MustCompile(`<[^>]+>`).ReplaceAllString(body("/test/-/tags"), "")
-	expect("tags", tags, []string{"#test 12", "#test/keyboard 1", "#test/print 1", "#test/links 2", "#test/embeds 1", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
+	expect("tags", tags, []string{"#test 13", "#test/slides 1", "#test/keyboard 1", "#test/print 1", "#test/links 2", "#test/embeds 1", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
 	expect("tag page", body("/test/-/tag/test"), []string{"01 Formatting.md", "02 Code and Diagrams.md", "sub/03 Nested.md", "00 Index.md"}, []string{"v1.2"})
 	expect("unicode tag", body("/test/-/tag/%C3%BCberpr%C3%BCfung"), []string{"00 Index.md"}, nil)
 

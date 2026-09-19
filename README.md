@@ -34,7 +34,7 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Note embeds, `![[Note]]` and `![[Note#Heading]]` | works, one level deep |
 | Keyboard: Vim-style keys, link hints, help, can be switched off | works |
 | Printing and PDF export in book format | works; page numbers come from the print dialog |
-| Export as a slide show | not started |
+| Slide show, and the PDF export's slide format | works |
 | Callouts, block references (`#^id`), `==highlight==`, `%%comments%%` | not started |
 | Search | works: words, phrases, `tag:`, `path:` and Obsidian's task operators, ranked by how well a note matches |
 | Search history | works: the last 10 searches, in a cookie, with a way to clear them |
@@ -128,7 +128,7 @@ of every page.
 | `zM` / `zR` | fold all, unfold all |
 | `H` / `L` | back and forward in the browser's history |
 | `-` | up, to the folder the page is in |
-| `gh` / `gt` / `gr` / `gp` | go home, to the tags, to the graph, to the PDF export |
+| `gh` / `gt` / `gr` / `gp` / `gs` | go home, to the tags, to the graph, to the PDF export, to the slide show |
 | `Tab` | the browser's own way from link to link |
 
 **Focus is the browser's own.** Moving through a list or to a heading moves the
@@ -200,6 +200,38 @@ title, which links to the note. Its front matter is not shown.
 
 An embed counts as a link: it shows up in the backlinks and the graph.
 
+## Slides
+
+A note is a deck of slides if it separates them the way Obsidian's Slides plugin
+does: a line of `---` with a blank line before and after it. (Without the blank
+line before, `---` makes the line above it a heading; inside a quote or a list
+it is a rule. Front matter is no slide.)
+
+*Slide show* in the footer of such a note, or `gs`, opens it: one slide at a
+time, filling the window. A slide is laid out at a fixed 16:9 size and scaled as
+a whole, so it looks the same in every window and on paper; a slide with too
+much on it is made smaller until it fits, not cut off.
+
+| | |
+|---|---|
+| Next slide | `→` `↓` `PgDn` `Space` `Enter`, `l` `j`, a click on the right half, a swipe, the `›` button |
+| Previous slide | `←` `↑` `PgUp` `Backspace` `Shift+Space`, `h` `k`, a click on the left half, a swipe, the `‹` button |
+| First and last | `Home` and `End`, `gg` and `G` |
+| Full screen | `f`, or the button |
+| Leave | `q` or `Esc`, or *Exit* |
+| The keys | `?` |
+
+The slide number is in the address (`…#3`), so reloading, the Back button and a
+copied link keep the place. Each slide is announced as "Slide 3 of 8", the
+slides that are not showing are out of reach of Tab and of a screen reader, and
+the letter keys follow the switch in the keyboard help. Without JavaScript the
+slides are a page to scroll through. Embedded notes, images, code, tables and
+Mermaid diagrams work on slides as they do in a note.
+
+*PDF* in the slide show's bar, or **Format: Slides** on the export page, prints
+one slide a page — 16:9, 4:3 or A4 landscape — with sub pages if asked, every
+note's slides after the other.
+
 ## Printing and PDF export
 
 *Export to PDF* in the footer of a note or folder opens it laid out for paper:
@@ -210,7 +242,8 @@ installing, and it works on a phone too.
 
 | Option | |
 |---|---|
-| Page size | A4, A5, B5, Letter, Legal, each with margins that suit it |
+| Format | Book, or Slides: one slide a page, see above |
+| Page size | A4, A5, B5, Letter, Legal, each with margins that suit it; for slides 16:9, 4:3, A4 landscape |
 | Include sub pages | see below |
 
 A setting applies as soon as it is chosen; there is no button to press. Both

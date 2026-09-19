@@ -290,3 +290,84 @@ html.export body { max-width: none; padding: 0 0 48px; background: #e9eaec; font
   .transclusion { background: none; border-radius: 0; }
   .missing-embed, .drawing-unexported { border-color: #999; }
 }
+
+/* ---- Slides ---------------------------------------------------------------
+   A slide is laid out at a fixed size (--slide-w x --slide-h, in px) and
+   scaled as a whole: the same slide in every window and on paper. */
+.slide {
+  box-sizing: border-box; width: calc(var(--slide-w) * 1px); height: calc(var(--slide-h) * 1px);
+  padding: 56px 80px; overflow: hidden; display: flex; flex-direction: column; justify-content: center;
+  font: 30px/1.4 system-ui, sans-serif; color: var(--fg); background: var(--bg);
+}
+.slide-content { max-height: 100%; min-height: 0; }
+.slide-content > :first-child { margin-top: 0; }
+.slide-content > :last-child { margin-bottom: 0; }
+.slide h1 { font-size: 2.1em; margin: 0 0 0.5em; line-height: 1.15; }
+.slide h2 { font-size: 1.55em; margin: 0 0 0.6em; line-height: 1.2; }
+.slide h3 { font-size: 1.2em; margin: 0 0 0.5em; }
+.slide :is(p, ul, ol, pre, table, blockquote) { margin: 0 0 0.7em; }
+.slide li { margin: 0.25em 0; }
+.slide pre { font-size: 0.7em; padding: 0.8em 1em; }
+.slide img { max-height: calc(var(--slide-h) * 0.62px); object-fit: contain; }
+.slide table { border-collapse: collapse; font-size: 0.85em; }
+.slide :is(th, td) { padding: 0.3em 0.8em; border: 1px solid var(--line); }
+.slide .page-break { display: none; }
+/* Mermaid caps a diagram at its natural width, which is small print on a slide */
+.slide pre.mermaid { margin: 0 0 0.7em; padding: 0; }
+.slide pre.mermaid svg { width: 86%; max-width: 86% !important; height: auto; max-height: calc(var(--slide-h) * 0.6px); }
+.slide details.fold > summary::before { content: none; }
+/* a slide that is only a heading, or a heading and a line: a title slide */
+.slide-content:has(> h1:first-child:nth-last-child(-n + 2)) { text-align: center; }
+
+/* while diagrams are drawn nothing is scaled, see slides.js */
+html.measuring .slide, html.measuring .slide-content { zoom: 1 !important; transform: none !important; }
+html.measuring .deck, html.measuring .paper.sheets { visibility: hidden; }
+
+/* without script: slides one below the other, a page to scroll */
+html.deck-page body { max-width: none; margin: 0; padding: 0; background: var(--soft); }
+.deck .slide { margin: 24px auto; max-width: 100%; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25); zoom: 0.6; }
+.deck-bar, .deck-progress { display: none; }
+
+/* with script: one slide, filling the window */
+html.deck-page.js, html.deck-page.js body { height: 100%; overflow: hidden; background: #000; }
+html.js .deck { position: fixed; inset: 0 0 40px 0; overflow: hidden; background: #000; cursor: default; }
+html.js .deck .slide {
+  position: absolute; left: 50%; top: 50%; margin: 0; max-width: none; zoom: 1; box-shadow: none;
+  transform: translate(-50%, -50%) scale(var(--scale, 1)); visibility: hidden;
+}
+html.js .deck .slide.current { visibility: visible; }
+html.js .deck-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; height: 40px; box-sizing: border-box; display: flex; align-items: center; gap: 10px;
+  padding: 0 12px; font: 14px system-ui, sans-serif; color: #c9d1d9; background: #161b22;
+}
+.deck-bar button, .deck-bar a { font: inherit; color: #c9d1d9; background: none; border: 1px solid transparent; border-radius: 6px; padding: 2px 8px; cursor: pointer; text-decoration: none; }
+.deck-bar button:hover:not(:disabled), .deck-bar a:hover { border-color: #484f58; }
+.deck-bar button:disabled { opacity: 0.35; cursor: default; }
+.deck-bar #deck-prev, .deck-bar #deck-next { font-size: 22px; line-height: 1; padding: 0 10px 3px; }
+.deck-bar kbd { color: #c9d1d9; background: #21262d; border-color: #484f58; }
+.deck-counter { min-width: 7.5em; text-align: center; font-variant-numeric: tabular-nums; }
+.deck-links { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+html.js .deck-progress { display: block; position: fixed; left: 0; right: 0; bottom: 40px; height: 3px; background: #21262d; }
+.deck-progress span { display: block; height: 100%; width: 0; background: #4493f8; transition: width 0.2s; }
+@media (prefers-reduced-motion: reduce) { .deck-progress span { transition: none; } }
+#deck-help { width: min(34rem, calc(100vw - 32px)); padding: 16px 20px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; }
+#deck-help::backdrop { background: rgba(0, 0, 0, 0.55); }
+#deck-help form { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+#deck-help h2 { margin: 0; font-size: 1.1rem; }
+#deck-help form button { font-size: 1.3rem; line-height: 1; padding: 2px 8px; color: var(--muted); background: none; border: 0; cursor: pointer; }
+#deck-help table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+#deck-help td { padding: 4px 0; vertical-align: top; border-top: 1px solid var(--line); }
+#deck-help td:first-child { width: 12rem; }
+#deck-help .hint { margin: 10px 0 0; color: var(--muted); font-size: 0.8rem; }
+
+/* slides on paper: the export page's slide format, one slide a page */
+.paper.sheets { width: auto !important; padding: 0 !important; background: none; box-shadow: none; }
+.paper.sheets .slide { margin: 0 auto 24px; color: #111; background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25); zoom: var(--preview-zoom, 0.6); }
+@media print {
+  .paper.sheets .slide { margin: 0; zoom: 1; box-shadow: none; break-after: page; break-inside: avoid; }
+  .paper.sheets .slide:last-child { break-after: auto; }
+  /* A slide fills its page to the pixel, so any box after the last one - even
+     an empty one - is pushed onto a blank sheet of its own. Mermaid leaves such
+     boxes in <body>. Nothing but the slides is printed. */
+  body:has(> .paper.sheets) > :not(.paper.sheets) { display: none !important; }
+}
