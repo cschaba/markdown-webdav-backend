@@ -78,6 +78,11 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
   extension appends to the document for the whole note (footnotes, the Mermaid
   script) must be kept out of the last section there.
 
+- Search (`internal/index/search.go`) reads the note files on every query; there
+  is no search index to keep in step. The score constants are an order (title,
+  tag, property value, heading, path, text), pinned by `TestSearchRanking`. Anything that makes
+  the scan slower shows at once in the timings in `docs/ARCHITECTURE.md`:
+  re-measure the same way after touching it, do not estimate.
 - Graph view: data from `Index.Graph` (`internal/index/graph.go`), drawn by
   `internal/web/static/graph.js` with the force-graph library. **The four group
   colours are validated, not chosen**: they are the largest subset of the
@@ -112,5 +117,7 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
   them flaky, which is not a logic bug.
 - `git config --get user.name` succeeds from your global config on a dev machine
   and fails in a container; the fallback identity only shows up there.
+- A test page that demonstrates search queries contains those queries, so it
+  finds itself. `06 Search.md` says so; do not "fix" the search for it.
 - A wikilink that renders as plain text means "did not resolve", not "extension
   broken".

@@ -20,7 +20,8 @@ type Note struct {
 	Path    string // vault-relative, slash-separated, including ".md"
 	URL     string // where the web view serves it
 	Title   string
-	Drawing bool // an Excalidraw drawing, see drawing.go
+	Drawing bool       // an Excalidraw drawing, see drawing.go
+	props   []property // front matter values for the search, see search.go
 	ModTime time.Time
 	render.Meta
 }
@@ -156,6 +157,7 @@ func (idx *Index) load(rel string) *Note {
 		return nil
 	}
 	note := &Note{Path: rel, URL: idx.URL(rel), ModTime: info.ModTime(), Meta: idx.renderer.Meta(src)}
+	note.props = properties(note.Frontmatter)
 	_, hasKey := note.Frontmatter[drawingKey]
 	note.Drawing = hasKey || drawingPath(rel)
 	note.Title = note.Meta.Title

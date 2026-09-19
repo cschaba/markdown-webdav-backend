@@ -1,0 +1,22 @@
+{{template "head" .}}
+<h1>Search</h1>
+{{with .Body}}{{if .Query}}
+<p class="empty">{{len .Results}} {{if eq (len .Results) 1}}result{{else}}results{{end}} for “{{.Query}}”, best match first.</p>
+<ul class="list results">
+{{range .Results}}<li>{{with .Percent}}<span class="match" title="How well this matches. 100% is as good as a note named exactly what you searched for.">{{.}}%</span>{{end}}<a href="{{.URL}}">{{.Title}}</a> <small>{{.Path}}{{if .Attachment}} · attachment{{end}}</small>
+{{range .Snippets}}<p class="snippet">{{.}}</p>
+{{end}}</li>
+{{end}}</ul>
+{{end}}{{end}}
+<details class="help"{{if not .Body.Results}} open{{end}}>
+<summary>How to search</summary>
+<table class="properties">
+<tr><th><code>garden plan</code></th><td>notes containing both words, anywhere: title, tags, properties, headings or text</td></tr>
+<tr><th><code>"garden plan"</code></th><td>the exact phrase</td></tr>
+<tr><th><code>tag:project</code></th><td>only notes with that tag, or one nested below it</td></tr>
+<tr><th><code>path:daily/</code></th><td>only notes whose folder or file name contains that text</td></tr>
+<tr><th><code>tag:project roof</code></th><td>operators and words combine</td></tr>
+</table>
+<p class="empty">Capitals do not matter. The percentage says how well a result matches: 100% is as good as a note named exactly what you searched for. On its own, a word in the title gives about 70%, a tag 30%, a property 25%, a heading 20%, and mentions in the text 5–13%, depending on how often; they add up, so a note that has the word in its title, as a tag and in its text reaches 100% too. It is not relative to the other results, so a search whose best hit shows 5% found nothing that is really about your words. Of the properties the values are searched, not their names. Excalidraw drawings are not searched; attachments are found by file name.</p>
+</details>
+{{template "foot" .}}

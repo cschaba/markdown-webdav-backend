@@ -218,7 +218,11 @@ func internalTarget(dest string) string {
 	}
 	// Obsidian resolves these like wikilinks, by name rather than relative
 	// to the linking note, so leading "./" and "../" carry no meaning.
-	return strings.TrimPrefix(path.Clean("/"+u.Path), "/")
+	target := strings.TrimPrefix(path.Clean("/"+u.Path), "/")
+	if strings.HasPrefix(target, "-/") {
+		return "" // one of the server's own pages, such as -/search?q=...
+	}
+	return target
 }
 
 // stringList accepts the shapes Obsidian allows for list properties:

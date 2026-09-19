@@ -7,7 +7,7 @@ related: "[[01 Formatting]]"
 # Pages
 
 Every page of this vault, and what it is there to show. A test fails when a
-page is added without a line here.
+page cannot be reached from here by following links.
 
 | Page | Shows |
 |---|---|
@@ -16,6 +16,7 @@ page is added without a line here.
 | [[03 Nested]] | links and backlinks across folders, image and file attachments |
 | [[04 Missing attachments]] | links and embeds whose file does not exist, image sizes |
 | [[05 Excalidraw]] | drawings shown through the plugin's exported picture, light and dark, and the ones without a picture |
+| [[06 Search]] | the search box: ranking, phrases, `tag:` and `path:`; brings three helper notes in `search/` |
 | [[v1.2 plan]] | a dot in a note name, broken front matter |
 | this page | front matter, tags, every way to write a link |
 

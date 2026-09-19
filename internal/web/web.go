@@ -57,6 +57,7 @@ func New(cfg Config) (*Handler, error) {
 	}
 	h := &Handler{Config: cfg, prefix: "/" + cfg.Name, root: root, mux: http.NewServeMux()}
 	h.mux.HandleFunc("GET /-/tags", h.tags)
+	h.mux.HandleFunc("GET /-/search", h.search)
 	h.mux.HandleFunc("GET /-/graph", h.graph)
 	h.mux.HandleFunc("GET /-/graph.json", h.graphData)
 	h.mux.HandleFunc("GET "+index.TagPath+"{tag...}", h.tag)
@@ -72,20 +73,25 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type crumb struct{ Name, URL string }
 
 type page struct {
-	Title    string
-	Vault    string
-	Vaults   []Vault
-	TagsURL  string
-	GraphURL string
-	Wide     bool // the page uses the whole window, not a text column
-	Crumbs   []crumb
-	Warning  string
-	Body     any
+	Title     string
+	Vault     string
+	Vaults    []Vault
+	TagsURL   string
+	GraphURL  string
+	SearchURL string
+	Query     string // what the search box shows
+	Wide      bool   // the page uses the whole window, not a text column
+	Crumbs    []crumb
+	Warning   string
+	Body      any
 }
 
 func (h *Handler) render(w http.ResponseWriter, name string, title string, crumbs []crumb, body any) {
 	p := page{Title: title, Vault: h.Name, Vaults: h.Vaults, TagsURL: h.prefix + "/-/tags", GraphURL: h.prefix + "/-/graph",
-		Wide: name == "graph.html", Crumbs: crumbs, Body: body}
+		SearchURL: h.prefix + "/-/search", Wide: name == "graph.html", Crumbs: crumbs, Body: body}
+	if results, ok := body.(searchBody); ok {
+		p.Query = results.Query
+	}
 	if h.Warning != nil {
 		if err := h.Warning(); err != nil {
 			p.Warning = "Versioning is failing: " + err.Error()
@@ -358,6 +364,21 @@ func scriptable(name string) bool {
 		return true
 	}
 	return false
+}
+
+type searchBody struct {
+	Query   string
+	Results []index.SearchResult
+}
+
+func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	title := "Search"
+	if q != "" {
+		title = q + " – Search"
+	}
+	h.render(w, "search.html", title, append(h.crumbs(""), crumb{"Search", h.prefix + "/-/search"}),
+		searchBody{Query: q, Results: h.Index.Search(q)})
 }
 
 // graph is the page; the script on it fetches graphData.

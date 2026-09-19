@@ -4,8 +4,10 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 
@@ -187,10 +189,69 @@ func TestFixtureVault(t *testing.T) {
 		t.Errorf("graph.json served as %q", res.Header.Get("Content-Type"))
 	}
 
+	// Search. Every page has the box; the results come best match first.
+	expect("search box", index, []string{`<form class="search" action="/test/-/search" role="search">`, `name="q" value=""`}, nil)
+	results := func(q string) string {
+		t.Helper()
+		html := body("/test/-/search?q=" + url.QueryEscape(q))
+		var found []string
+		for _, m := range regexp.MustCompile(`<li>(?:<span class="match"[^>]*>[^<]*</span>)?<a href="[^"]*">[^<]*</a> <small>([^<]*)</small>`).FindAllStringSubmatch(html, -1) {
+			found = append(found, m[1])
+		}
+		return strings.Join(found, " | ")
+	}
+	// The ranking example, in full order: title, tag, heading, mention.
+	if got, want := results("zeppelin"), "search/Zeppelin.md | search/Airships.md | search/History.md | 06 Search.md"; got != want {
+		t.Errorf("ranking\n got: %s\nwant: %s", got, want)
+	}
+	// ...and with how well each matches, on the fixed scale the page explains.
+	var percents []string
+	for _, m := range regexp.MustCompile(`<span class="match"[^>]*>(\d+%)</span><a href="[^"]*">([^<]*)</a>`).FindAllStringSubmatch(body("/test/-/search?q=zeppelin"), -1) {
+		percents = append(percents, m[2]+" "+m[1])
+	}
+	if got, want := strings.Join(percents, " | "), "Zeppelin 100% | Airships 30% | History 20% | 06 Search 13%"; got != want {
+		t.Errorf("percentages\n got: %s\nwant: %s", got, want)
+	}
+	expect("filters alone show no percentage", body("/test/-/search?q="+url.QueryEscape("path:search/")), []string{"3 results for"}, []string{`class="match"`})
+
+	// Page 06 quotes every query, so it is always found too. For these the
+	// best match and the set of results matter, not how ties fall.
+	for q, want := range map[string]string{
+		"Zeppelin 1937": "search/History.md | 06 Search.md",
+		`"rigid frame"`: "search/Zeppelin.md | 06 Search.md",
+		`"frame rigid"`: "06 Search.md",
+		"path:search/":  "search/Airships.md | search/History.md | search/Zeppelin.md",
+		// 06 first: it says the word twice (link text and link address), 04 once.
+		"tag:test checkerboard": "06 Search.md | 04 Missing attachments.md",
+		"pixel":                 "attachments/pixel.png · attachment | 04 Missing attachments.md | 06 Search.md | sub/03 Nested.md",
+		"versionNonce":          "06 Search.md", // never the drawings that contain it
+	} {
+		got := strings.Split(results(q), " | ")
+		first := got[0]
+		sort.Strings(got)
+		wantSet := strings.Split(want, " | ")
+		wantFirst := wantSet[0]
+		sort.Strings(wantSet)
+		if first != wantFirst || strings.Join(got, " | ") != strings.Join(wantSet, " | ") {
+			t.Errorf("search %q\n got: %s first, of %v\nwant: %s first, of %v", q, first, got, wantFirst, wantSet)
+		}
+	}
+	expect("search in properties", body("/test/-/search?q=dirigible"),
+		[]string{"1 result for", `<p class="snippet">vessel: dirigible</p>`}, nil)
+	searched := body("/test/-/search?q=" + url.QueryEscape(`"rigid frame"`))
+	expect("search page", searched, []string{
+		`value="&#34;rigid frame&#34;"`, // the box keeps the query
+		`<p class="snippet">An airship with a rigid frame.</p>`,
+		"2 results for",
+	}, nil)
+	expect("search escapes the query", body("/test/-/search?q="+url.QueryEscape(`<b>x</b>`)),
+		[]string{`value="&lt;b&gt;x&lt;/b&gt;"`, "0 results for “&lt;b&gt;x&lt;/b&gt;”"}, []string{"<b>x"})
+	expect("search without a query", body("/test/-/search"), []string{`<details class="help" open>`, "tag:project"}, []string{"results for"})
+
 	expect("v1.2 plan", body("/test/v1.2%20plan"), []string{"this body text must still render"}, nil)
 
 	tags := regexp.MustCompile(`<[^>]+>`).ReplaceAllString(body("/test/-/tags"), "")
-	expect("tags", tags, []string{"#test 6", "#test/missing 1", "#test/excalidraw 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
+	expect("tags", tags, []string{"#test 7", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
 	expect("tag page", body("/test/-/tag/test"), []string{"01 Formatting.md", "02 Code and Diagrams.md", "sub/03 Nested.md", "00 Index.md"}, []string{"v1.2"})
 	expect("unicode tag", body("/test/-/tag/%C3%BCberpr%C3%BCfung"), []string{"00 Index.md"}, nil)
 
@@ -200,13 +261,31 @@ func TestFixtureVault(t *testing.T) {
 	}, nil)
 }
 
-// The index page is how a person finds the test pages; a page missing from it
-// is a feature nobody looks at.
+// The index page is how a person finds the test pages; a page that cannot be
+// reached from it is a feature nobody looks at. A numbered page must be in the
+// Pages table itself; what it brings along (drawings, helper notes) only has
+// to be reachable through it.
 func TestFixtureIndexListsEveryPage(t *testing.T) {
 	const root, indexPage = "../../testdata/vault", "00 Index.md"
 	idx := index.New(root, "/test")
 	if err := idx.Rebuild(); err != nil {
 		t.Fatal(err)
+	}
+	next := map[string][]string{}
+	for _, link := range idx.Graph().Links {
+		next[link.Source] = append(next[link.Source], link.Target)
+	}
+	direct, reachable := map[string]bool{}, map[string]bool{indexPage: true}
+	for _, p := range next[indexPage] {
+		direct[p] = true
+	}
+	for queue := []string{indexPage}; len(queue) > 0; queue = queue[1:] {
+		for _, p := range next[queue[0]] {
+			if !reachable[p] {
+				reachable[p] = true
+				queue = append(queue, p)
+			}
+		}
 	}
 	pages := 0
 	err := filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
@@ -215,17 +294,14 @@ func TestFixtureIndexListsEveryPage(t *testing.T) {
 		}
 		rel, _ := filepath.Rel(root, p)
 		rel = filepath.ToSlash(rel)
-		// Drawings are reached through the page that embeds them.
-		if rel == indexPage || idx.IsDrawing(rel) {
-			return nil
-		}
 		pages++
-		for _, note := range idx.Backlinks(rel) {
-			if note.Path == indexPage {
-				return nil
-			}
+		numbered := !strings.Contains(rel, "/") && rel[0] >= '0' && rel[0] <= '9'
+		switch {
+		case numbered && !direct[rel] && rel != indexPage:
+			t.Errorf("%q is not in the Pages table of %q", rel, indexPage)
+		case !reachable[rel]:
+			t.Errorf("%q cannot be reached from %q by following links", rel, indexPage)
 		}
-		t.Errorf("%q is not linked from %q: add a line for it to the Pages table", rel, indexPage)
 		return nil
 	})
 	if err != nil {

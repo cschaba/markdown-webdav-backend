@@ -97,6 +97,42 @@ The fixture pictures in `testdata/vault/drawings` were made once with the
 current library from the scene in `Sketch.excalidraw.md`, so they are what the
 plugin would export.
 
+**Search scans the files on every query.** No inverted index, no copy of the
+text in memory: nothing that can go stale, and text edited on disk is found at
+once. A search library (Bleve, SQLite FTS) would be a database beside the plain
+files; search in the browser would ship the whole vault to a phone. The scan
+runs on all cores and works on each note's whole text at once.
+
+Measured on generated vaults of ~5 KB notes, 10 runs after 2 warm-up, 8 cores,
+files in the page cache, whole request including rendering the page:
+
+| Vault | One word | Two words / phrase | No match | `tag:` + word | One letter (everything matches) |
+|---|---|---|---|---|---|
+| 1,000 notes, 5 MB | 25 ms | 25 ms | 23 ms | 3 ms | 44 ms |
+| 5,000 notes, 26 MB | 48 ms | 46 ms | 43 ms | 3 ms | 66 ms |
+
+The first version was estimated at "20–50 ms for 2,000 notes" and measured at
+100 ms per 1,000 notes, and 10 s for a one-letter query on the large vault. The
+cost was not reading the files: it was lowercasing line by line, a whole-word
+check that converted strings to runes for every occurrence, and building
+snippets for every match instead of the hundred shown. If a vault outgrows
+this, keep each note's lowercased text in the index; only `search.go` changes.
+
+The percentage shown with a result is the score on a fixed scale, 100% being
+what a note named exactly the search term scores (per term, so two words are
+not held to a higher standard than one). Signals add up and the number is
+capped, so several notes can show 100%; they are still ordered by the uncapped
+score. First written up as "100% means named exactly that", which the first
+search in a real vault disproved: three notes with the word in title, tag and
+text showed 100%. Making the best hit 100% was the alternative; it
+would call the top result of a hopeless search a perfect match.
+
+Ranking is by where a term occurs, not how often: title, tag, property, heading,
+path, text, with text hits capped. Property values come from the front matter
+the index has parsed anyway; keys are not searched, since "created" or "source"
+would find every note. It needs no corpus statistics, and it is
+explainable to the person wondering why a note came first.
+
 **The graph view is drawn by a library, in the browser.** Layout, zoom, pan and
 drag come from `force-graph` (canvas, MIT, 57 KB compressed, version pinned in
 `graph.html`); a force simulation is not something to write by hand. It is the
