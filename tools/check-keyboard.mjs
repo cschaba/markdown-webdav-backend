@@ -68,6 +68,20 @@ check("a sequence that leads nowhere falls back to its last key (g, j scrolls)",
 await type("gg"); await settle();
 await press("j", { ctrl: true }); await press("j", { alt: true }); await press("j", { meta: true }); await settle();
 check("with Ctrl, Alt or Meta the keys are left alone", await js("scrollY") === 0, await js("scrollY"));
+// A character that is no key of ours: the browser must not get it either, or
+// Firefox opens its find bar. No browser to be driven here has one, so what is
+// checked is that the key's default was prevented. Space stays the browser's.
+await js(`window.__prevented = {}; addEventListener("keydown", e => { __prevented[e.key] = e.defaultPrevented; })`);
+await type("x'"); await press("g"); await press("x"); await press("j", { ctrl: true }); await press(" "); await settle();
+const stray = JSON.parse(await js(`JSON.stringify(__prevented)`));
+check("a key that is not handled is kept from the browser's find bar", stray.x === true && stray["'"] === true && stray.g === true, JSON.stringify(stray));
+check("but not Space, nor a key with Ctrl", stray[" "] === false && stray.j === false && await js("scrollY") > 0, JSON.stringify(stray) + " " + await js("scrollY"));
+await type("gg"); await settle();
+await press("/");
+await press("x");
+check("nor a character typed into a field", (await js(`JSON.stringify([__prevented.x, document.getElementById("search-q").value])`)) === '[false,"x"]', await js(`JSON.stringify([__prevented.x, document.getElementById("search-q").value])`));
+await js(`document.getElementById("search-q").value = ""`);
+await press("Escape");
 
 console.log("--- the search field");
 await press("/");
@@ -196,6 +210,9 @@ await press("?"); await sleep(200);
 check("off: not even ?", await js(`!document.getElementById("keys-help").open`), "opened");
 await press("/");
 check("off: nor /", !(await active()).startsWith("#search-q"), await active());
+await js(`window.__prevented = {}`);
+await press("x"); await press("j");
+check("off: the keys are the browser's again", await js(`__prevented.x === false && __prevented.j === false`), await js(`JSON.stringify(__prevented)`));
 await open("/test/01%20Formatting");
 await press("j"); await settle();
 check("off is remembered on the next page", await js("scrollY") === 0, await js("scrollY"));

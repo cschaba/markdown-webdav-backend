@@ -312,13 +312,17 @@
     var altGr = e.getModifierState && e.getModifierState("AltGraph");
     if (off || e.metaKey || ((e.ctrlKey || e.altKey) && !altGr) || e.isComposing) return;
     if (hints) { typeHint(e.key); e.preventDefault(); return; }
-    // In the help only the scrolling keys act, and the other characters are
-    // taken from the browser: it would answer "/" or a letter with its own
-    // find bar, on top of a help that says what the key does. Space stays the
-    // checkbox's and the button's; there is no field in the help to type in.
+    // In the help only the scrolling keys act. A character that is no key of
+    // ours is taken from the browser all the same, there and on the page:
+    // Firefox would answer "/", "'" or, with "search for text when you start
+    // typing", any letter with its own find bar - a slip of the finger next to
+    // a shortcut, or the second key of a sequence that leads nowhere. Space
+    // stays the browser's: it scrolls, and presses the button or checkbox that
+    // has the focus. So does all of it once the shortcuts are switched off.
+    // The help has no field to type in; its checkbox is not one.
     var inHelp = helpOpen(), known = inHelp ? helpSequences : sequences;
-    if (e.key.length !== 1 || (inHelp ? e.key === " " : typing(e.target))) return;
-    if (inHelp) e.preventDefault();
+    if (e.key.length !== 1 || e.key === " " || (!inHelp && typing(e.target))) return;
+    e.preventDefault();
 
     // "g" may become "gg" or "gt": wait for the next key. A sequence that
     // leads nowhere ("gx") is dropped, and its last key tried on its own.
@@ -326,8 +330,8 @@
     setPending("");
     for (var i = 0; i < attempts.length; i++) {
       var tried = attempts[i];
-      if (known[tried]) { e.preventDefault(); known[tried](e); return; }
-      if (Object.keys(known).some(function (s) { return s.indexOf(tried) === 0; })) { e.preventDefault(); setPending(tried); return; }
+      if (known[tried]) { known[tried](e); return; }
+      if (Object.keys(known).some(function (s) { return s.indexOf(tried) === 0; })) { setPending(tried); return; }
     }
   });
 })();

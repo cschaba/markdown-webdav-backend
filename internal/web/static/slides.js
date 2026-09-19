@@ -162,6 +162,9 @@
     if ((e.key === " " || e.key === "Enter") && e.target.closest("button, a, summary")) return;
     var key = e.key;
     if (key === " " && e.shiftKey) { e.preventDefault(); return prev(); }
+    // A character that is no key of the slide show is not left to the browser
+    // either, as on the other pages (keys.js): Firefox has a find bar for it.
+    if (key.length === 1 && !lettersOff) e.preventDefault();
     if (key === "g") { // gg
       if (lettersOff) return;
       if (Date.now() - pendingG < 1200) { pendingG = 0; key = "gg"; } else { pendingG = Date.now(); return; }
