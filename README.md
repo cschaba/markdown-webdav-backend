@@ -11,6 +11,10 @@ One small self-hosted server for vaults of Markdown notes:
 Plain files, one Go binary, no database. Private by design: a single login
 protects both the WebDAV endpoint and the rendered site.
 
+![A tour of the rendered site: a note, code and diagrams, embedded notes, an Excalidraw drawing, the graph, search, a note's statistics, link hints, the keyboard help, a slide show, the PDF export, dark mode and the About page](docs/screenshots/tour.png)
+
+*The test vault that ships with the source, four seconds a picture.*
+
 ## Status
 
 An early MVP. What is listed as working has been tested with `go test` and with

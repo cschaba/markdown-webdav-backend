@@ -16,7 +16,7 @@ Generic cross-project lessons: `~/AI-Memory/README.md`.
 | `main.go` | flags and `mount`: per vault, a WebDAV change updates the index and arms the committer |
 | `vaults.go` | parsing of `-vault [name=]dir[,nogit]` |
 | `version.go` | the version, written down here and nowhere else |
-| `tools/` | checks that need a real browser (`check-browser.sh` runs them), `release.sh` |
+| `tools/` | checks that need a real browser (`check-browser.sh` runs them), `release.sh`, `screenshots.sh` |
 | `.github/workflows` | `ci.yml`: Go tests and the browser checks; `release.yml`: a tag `v*` builds, tests and publishes the archives |
 | `testdata/vault` | the test vault: one page per feature, rendered by `internal/web/fixture_test.go` |
 | `internal/vault` | `webdav.FileSystem` wrapper: reports changes, hides `.git` |
@@ -35,6 +35,10 @@ go build && tools/check-pdf-export.sh
 
 # a release: version.go, CHANGELOG.md ([Unreleased] -> the version), commit, push main, then
 tools/release.sh --dry-run && tools/release.sh
+
+# the README's slideshow, docs/screenshots/tour.png, after a change that shows;
+# look at every frame before committing it
+tools/screenshots.sh
 
 # look at the test vault in a browser: http://127.0.0.1:18080/test/
 MDWEBDAV_PASSWORD=secret go run . -listen 127.0.0.1:18080 -vault test=./testdata/vault,nogit
