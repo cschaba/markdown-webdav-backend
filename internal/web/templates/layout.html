@@ -18,6 +18,8 @@
 {{end}}
 
 {{define "foot"}}</main>
+{{with .ExportURL}}<footer><a href="{{.}}">Export to PDF</a></footer>
+{{end}}<script src="/-/print.js"></script>
 </body>
 </html>
 {{end}}

@@ -95,6 +95,7 @@ func New(links LinkResolver, tagURL string) *Renderer {
 			highlighting.NewHighlighting(
 				highlighting.WithFormatOptions(chromahtml.WithClasses(true)),
 			),
+			pageBreakExtender{},
 			foldExtender{},
 		),
 		goldmark.WithParserOptions(parser.WithAutoHeadingID()),
@@ -357,7 +358,7 @@ func WriteHighlightCSS(w io.Writer) error {
 	if err := formatter.WriteCSS(w, styles.Get("github")); err != nil {
 		return err
 	}
-	if _, err := io.WriteString(w, "@media (prefers-color-scheme: dark) {\n"); err != nil {
+	if _, err := io.WriteString(w, "@media screen and (prefers-color-scheme: dark) {\n"); err != nil {
 		return err
 	}
 	if err := formatter.WriteCSS(w, styles.Get("github-dark")); err != nil {

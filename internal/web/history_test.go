@@ -17,10 +17,11 @@ import (
 // browser keeps cookies between requests, as far as this test needs it:
 // one cookie, replaced or deleted by Set-Cookie.
 type browser struct {
-	t       *testing.T
-	h       http.Handler
-	cookie  *http.Cookie
-	headers http.Header
+	t          *testing.T
+	h          http.Handler
+	cookie     *http.Cookie
+	cookieName string // which cookie it keeps; the search history's if unset
+	headers    http.Header
 }
 
 func (b *browser) do(method, target string) (int, string, http.Header) {
@@ -35,8 +36,12 @@ func (b *browser) do(method, target string) (int, string, http.Header) {
 	rec := httptest.NewRecorder()
 	b.h.ServeHTTP(rec, req)
 	res := rec.Result()
+	name := b.cookieName
+	if name == "" {
+		name = historyCookie
+	}
 	for _, c := range res.Cookies() {
-		if c.Name == historyCookie {
+		if c.Name == name {
 			if b.cookie = c; c.MaxAge < 0 {
 				b.cookie = nil
 			}

@@ -142,7 +142,7 @@ func TestFixtureVault(t *testing.T) {
 	}
 
 	const sketch = `<a class="drawing" href="/test/drawings/Sketch.excalidraw"><picture>` +
-		`<source media="(prefers-color-scheme: dark)" srcset="/test/drawings/Sketch.excalidraw.dark.svg">` +
+		`<source media="screen and (prefers-color-scheme: dark)" srcset="/test/drawings/Sketch.excalidraw.dark.svg">` +
 		`<img src="/test/drawings/Sketch.excalidraw.light.svg"`
 	expect("05 Excalidraw", body("/test/05%20Excalidraw"), []string{
 		sketch + `></picture></a>`,
@@ -427,12 +427,12 @@ func TestFixtureVault(t *testing.T) {
 	expect("v1.2 plan", body("/test/v1.2%20plan"), []string{"this body text must still render"}, nil)
 
 	tags := regexp.MustCompile(`<[^>]+>`).ReplaceAllString(body("/test/-/tags"), "")
-	expect("tags", tags, []string{"#test 10", "#test/links 2", "#test/embeds 1", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
+	expect("tags", tags, []string{"#test 11", "#test/print 1", "#test/links 2", "#test/embeds 1", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
 	expect("tag page", body("/test/-/tag/test"), []string{"01 Formatting.md", "02 Code and Diagrams.md", "sub/03 Nested.md", "00 Index.md"}, []string{"v1.2"})
 	expect("unicode tag", body("/test/-/tag/%C3%BCberpr%C3%BCfung"), []string{"00 Index.md"}, nil)
 
 	expect("listing", body("/test/"), []string{
-		`<a href="/test/attachments">attachments/</a>`,
+		`<a href="/test/attachments/">attachments/</a>`, // a folder's URL ends in a slash
 		`<a href="/test/00%20Index">Feature Test Index</a>`,
 	}, nil)
 }

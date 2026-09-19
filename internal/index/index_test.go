@@ -324,3 +324,34 @@ func TestResolveEmbedAndReadNote(t *testing.T) {
 		}
 	}
 }
+
+func TestNotesInReadingOrder(t *testing.T) {
+	root := writeVault(t, map[string]string{
+		"Book.md": "", "Book/Chapter 10.md": "", "Book/Chapter 2.md": "", "Book/chapter 1.md": "",
+		"Book/Appendix/B.md": "", "Book/Appendix/A.md": "", "Book/Zeta.md": "", "Other.md": "", "Book/pic.png": "",
+	})
+	idx := New(root, "")
+	if err := idx.Rebuild(); err != nil {
+		t.Fatal(err)
+	}
+	list := func(dir string, recursive bool) string {
+		var out []string
+		for _, n := range idx.NotesIn(dir, recursive) {
+			out = append(out, n.Path)
+		}
+		return strings.Join(out, " | ")
+	}
+	// numbers as numbers, capitals ignored, a folder's notes before its subfolders
+	if got, want := list("Book", true), "Book/chapter 1.md | Book/Chapter 2.md | Book/Chapter 10.md | Book/Zeta.md | Book/Appendix/A.md | Book/Appendix/B.md"; got != want {
+		t.Errorf("recursive:\n got: %s\nwant: %s", got, want)
+	}
+	if got, want := list("Book", false), "Book/chapter 1.md | Book/Chapter 2.md | Book/Chapter 10.md | Book/Zeta.md"; got != want {
+		t.Errorf("flat: %s", got)
+	}
+	if got := list("", false); got != "Book.md | Other.md" {
+		t.Errorf("root: %s", got)
+	}
+	if got := list("Boo", true); got != "" { // a folder, not a prefix of names
+		t.Errorf(`"Boo" matched: %s`, got)
+	}
+}

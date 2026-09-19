@@ -194,7 +194,7 @@ func TestEmbeds(t *testing.T) {
 		"![[photo.png]] after": `<p><img src="/img/photo.png"> after</p>`, // no stray closing tag
 		"![[Note]]":            `<p><a href="/Note">Note</a></p>`,
 		"![[Sketch.excalidraw|300]]": `<p><a class="drawing" href="/Sketch.excalidraw"><picture>` +
-			`<source media="(prefers-color-scheme: dark)" srcset="/Sketch.excalidraw.dark.svg">` +
+			`<source media="screen and (prefers-color-scheme: dark)" srcset="/Sketch.excalidraw.dark.svg">` +
 			`<img src="/Sketch.excalidraw.light.svg" width="300"></picture></a></p>`,
 		"[[Sketch.excalidraw]]": `<p><a href="/Sketch.excalidraw">Sketch.excalidraw</a></p>`, // a link stays a link
 		"![[Unexported.excalidraw]]": `<p><a class="drawing-unexported" href="/Unexported.excalidraw" title="` + DrawingHelp +
