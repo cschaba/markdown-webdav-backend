@@ -6,13 +6,6 @@ table in the [README](README.md) and the known gaps in
 moves to [CHANGELOG.md](CHANGELOG.md) and its row in the README says "works".
 Before 1.0 the order may change; what is out of scope says why.
 
-## 0.2.0 — ready on `main`, not yet released
-
-- The version at the foot of every page, and an About page with the vault's
-  statistics.
-- A note's statistics - words, reading time, links, tasks - shown with `i`.
-- `/dav/` lists the vaults, so a file manager finds them.
-
 ## Before 1.0: prove it with real clients
 
 The server is tested with `go test`, a headless browser, `curl` and `rclone`,

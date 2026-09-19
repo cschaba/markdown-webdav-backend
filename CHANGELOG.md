@@ -7,6 +7,10 @@ change flags, URLs or behaviour.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-19
+
+What a vault holds, at a glance, and a WebDAV address a file manager can open.
+
 ### Added
 
 - The version at the foot of every page, and an About page (`/<vault>/-/about`)
@@ -40,5 +44,6 @@ The first numbered version, and the first public one.
   vault through `os.Root`.
 - `-version`, release archives for Linux and macOS, and CI.
 
-[Unreleased]: https://github.com/cschaba/markdown-webdav-backend/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/cschaba/markdown-webdav-backend/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/cschaba/markdown-webdav-backend/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/cschaba/markdown-webdav-backend/releases/tag/v0.1.0
