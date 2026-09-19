@@ -79,6 +79,24 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
   which note it is rendering; the result travels on the node. what has no file behind it is replaced by a `missing` node
   and shows as a dashed "missing" marker, never as a dead link or a
   broken-image icon. A missing target still goes into `Meta.Links`.
+- Printing and PDF export (`internal/web/export.go`, the "Paper" part of
+  `style.css`, `static/print.js`): the browser makes the PDF from a page laid
+  out with CSS paged media.
+  **`tools/check-pdf-export.sh` prints real PDFs and asserts size, breaks,
+  order and the absence of site furniture; run it after any change to print
+  CSS, the export page or `print.js`.** The Go tests see only HTML.
+  The export's settings apply on `change` (no Apply button, by the owner's
+  wish) and are kept in a cookie. `tools/check-export-settings.mjs` checks that
+  in a browser. Print applies unapplied settings first and prints what comes
+  back; keep that when touching `print.js`.
+  **No page numbers of our own - removed by the owner's decision, do not bring
+  them back.** They need CSS page-margin boxes, which only Chromium draws; in
+  other browsers the numbers and the "first page number" setting silently did
+  nothing. (For the record, in Chromium a first page number works through
+  `counter-increment` on `@page :first`; every `counter-reset` variant fails.)
+  A server-made PDF would be the way to get numbers everywhere.
+- A note and a folder of the same name: the note owns the URL, the folder the
+  URL with a trailing slash. Build folder URLs with `Handler.folderURL`.
 - Note embeds (`internal/render/embed.go`): `![[Note]]` renders the other note
   with the same renderer, *from the other note's path*, and puts the HTML into
   the host's tree in place of the wikilink. **One level deep, by the owner's

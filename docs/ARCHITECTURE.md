@@ -103,6 +103,25 @@ level deep by decision; that keeps pages predictable and rules out loops
 without tracking a chain. Embedded headings lose their ids so the host's
 anchors stay unambiguous.
 
+**The browser makes the PDF.** The export is a page laid out for paper with
+CSS paged media, and "Save as PDF" in the print dialog does the rest. Making
+PDFs on the server would mean a headless browser in the image, a few hundred
+megabytes for a button; this way it also works from a phone. The price is that
+the browser decides what paper can do, and that ruled out page numbers of our
+own: they were built with CSS page-margin boxes, including a settable first
+page number and a script that left the number off a single page, verified in
+Chromium by reading the PDFs back — and then removed, because only Chromium
+draws margin boxes. In any other browser the numbers did not appear and the
+setting did nothing, which is worse than not offering it. The print dialog's
+own headers and footers number pages everywhere. Should numbers of our own
+matter one day, the server has to make the PDF. Slides are a separate task.
+
+**A note and a folder may share a name, not an address.** A note's URL drops
+its `.md`, so `Daily.md` and `Daily/` both wanted `/Daily`, and the folder won:
+every link to such a note showed a folder listing. Found when the PDF check
+printed a listing instead of a note. The note now has the URL, because links
+lead to notes; folder URLs end in a slash.
+
 **Private, single user.** One basic-auth login in front of everything. This is
 what makes it acceptable to skip per-note publishing rules. Even so, raw HTML is
 off and attachments are sandboxed, because notes and files get pasted in from

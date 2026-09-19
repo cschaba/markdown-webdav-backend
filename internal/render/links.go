@@ -183,7 +183,7 @@ func (r linkRenderer) wikilink(w util.BufWriter, src []byte, node ast.Node, ente
 		_, _ = w.WriteString(`<a class="drawing" href="` + href + `">`)
 	}
 	if embed.DarkImage != "" {
-		_, _ = w.WriteString(`<picture><source media="(prefers-color-scheme: dark)" srcset="` +
+		_, _ = w.WriteString(`<picture><source media="screen and (prefers-color-scheme: dark)" srcset="` +
 			string(util.EscapeHTML([]byte(embed.DarkImage))) + `">`)
 	}
 	_, _ = w.WriteString(`<img src="` + string(util.EscapeHTML([]byte(embed.Image))) + `"`)

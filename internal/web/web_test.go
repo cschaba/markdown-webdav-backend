@@ -12,6 +12,20 @@ import (
 	"markdown-webdav-backend/internal/index"
 )
 
+// handlerFor mounts the vault in dir as "/<name>".
+func handlerFor(t *testing.T, name, dir string) http.Handler {
+	t.Helper()
+	idx := index.New(dir, "/"+name)
+	if err := idx.Rebuild(); err != nil {
+		t.Fatal(err)
+	}
+	h, err := New(Config{Name: name, Dir: dir, Index: idx})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return h
+}
+
 // serve mounts the vault in dir as "/<name>" and returns a GET function.
 func serve(t *testing.T, name, dir string) func(string) *http.Response {
 	t.Helper()

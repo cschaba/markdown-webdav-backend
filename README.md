@@ -32,6 +32,8 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Excalidraw drawings | works through the plugin's exported picture, see below |
 | Obsidian "Bases" (`.base` files) | not started |
 | Note embeds, `![[Note]]` and `![[Note#Heading]]` | works, one level deep |
+| Printing and PDF export in book format | works; page numbers come from the print dialog |
+| Export as a slide show | not started |
 | Callouts, block references (`#^id`), `==highlight==`, `%%comments%%` | not started |
 | Search | works: words, phrases, `tag:`, `path:` and Obsidian's task operators, ranked by how well a note matches |
 | Search history | works: the last 10 searches, in a cookie, with a way to clear them |
@@ -158,6 +160,45 @@ title, which links to the note. Its front matter is not shown.
   A note that does not exist is marked missing, like any broken link.
 
 An embed counts as a link: it shows up in the backlinks and the graph.
+
+## Printing and PDF export
+
+*Export to PDF* in the footer of a note or folder opens it laid out for paper:
+no navigation, search box, tags or backlinks; portrait, book margins, a serif
+text face. **Print / Save as PDF** there opens the browser's print dialog —
+choose "Save as PDF". The server makes no PDFs itself, so nothing needs
+installing, and it works on a phone too.
+
+| Option | |
+|---|---|
+| Page size | A4, A5, B5, Letter, Legal, each with margins that suit it |
+| Include sub pages | see below |
+
+A setting applies as soon as it is chosen; there is no button to press. Both
+are remembered for the next export (in a cookie, so per browser and vault).
+
+**Sub pages** of a note are the notes in the folder named like it (`Daily.md`
+and `Daily/`, to any depth); for a folder, the notes of the folders below it.
+They follow in reading order — numbers count as numbers, so *Chapter 10* comes
+after *Chapter 2*, and a folder's own notes come before its subfolders — each on
+a new page, after a contents page. A note that does not open with a heading is
+given its title.
+
+**A page break** is a line of its own saying `\pagebreak`
+or `\newpage`, or the element Obsidian's own PDF export understands,
+`<div style="page-break-after: always;"></div>`. On screen it is a dashed line.
+
+Printing a page directly (Ctrl+P) gives the same layout, on the paper chosen in
+the dialog. Headings stay with their text; tables, code, images and embeds are
+not cut in two where that can be avoided; folded sections are printed unfolded.
+
+**Page numbers** are left to the print dialog: its "headers and footers"
+option numbers the pages in every browser. Numbers of our own, with a settable
+first page number, were built and removed again — the CSS for them (page-margin
+boxes) is drawn by Chromium only, so elsewhere the setting silently did nothing.
+
+A note and a folder of the same name share a name but not an address: the note
+is `/vault/Daily`, the folder `/vault/Daily/`.
 
 ## Search
 

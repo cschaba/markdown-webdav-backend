@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" class="export">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+<link rel="stylesheet" href="/-/style.css">
+<style>{{.PageCSS}}</style>
+</head>
+<body>
+<form class="export-bar" action="{{.Action}}" method="get">
+<input type="hidden" name="path" value="{{.Path}}">
+<input type="hidden" name="set" value="1">
+<a class="back" href="{{.BackURL}}">← Back</a>
+<label>Page size <select name="size">{{range .Sizes}}<option{{if eq .Name $.Size.Name}} selected{{end}}>{{.Name}}</option>{{end}}</select></label>
+<label{{if not .HasSub}} class="disabled" title="There are no sub pages here"{{end}}><input type="checkbox" name="sub" value="1"{{if .Sub}} checked{{end}}{{if not .HasSub}} disabled{{end}}> Include sub pages</label>
+<noscript><button type="submit">Apply</button></noscript>
+<button type="button" class="primary" id="print">Print / Save as PDF</button>
+<p class="hint">Changes apply at once and are remembered for the next export. Choose “Save as PDF” in the print dialog; its “headers and footers” option adds page numbers, if wanted. {{len .Docs}} {{if eq (len .Docs) 1}}note{{else}}notes{{end}}. A line of its own saying <code>\pagebreak</code> starts a new page.</p>
+</form>
+<main class="paper" style="width: {{.Size.W}}mm; padding: {{.Size.Top}}mm {{.Size.Side}}mm {{.Size.Bottom}}mm;">
+<div class="paper-content" id="paper-content">
+{{if gt (len .Docs) 1}}<section class="doc contents">
+<h1 class="doc-title">{{.Title}}</h1>
+<ol>
+{{range .Docs}}<li>{{.Title}}</li>
+{{end}}</ol>
+</section>
+{{end}}{{range .Docs}}<section class="doc">
+{{if .ShowTitle}}<h1 class="doc-title">{{.Title}}</h1>
+{{end}}{{.HTML}}
+</section>
+{{else}}<p class="empty">There is nothing to export here.</p>
+{{end}}</div>
+</main>
+<script src="/-/print.js"></script>
+</body>
+</html>

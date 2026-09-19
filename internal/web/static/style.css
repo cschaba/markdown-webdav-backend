@@ -3,7 +3,8 @@
   --fg: #1f2328; --muted: #656d76; --bg: #ffffff; --soft: #f6f8fa;
   --line: #d0d7de; --link: #0969da; --warn-bg: #fff8c5; --warn-line: #d4a72c;
 }
-@media (prefers-color-scheme: dark) {
+/* screen only: paper is white, whatever the reader's theme */
+@media screen and (prefers-color-scheme: dark) {
   :root {
     --fg: #e6edf3; --muted: #8d96a0; --bg: #0d1117; --soft: #161b22;
     --line: #30363d; --link: #4493f8; --warn-bg: #3a2f00; --warn-line: #9e6a03;
@@ -170,3 +171,84 @@ body.wide main { flex: 1; min-height: 0; display: flex; }
 /* the library's tooltip */
 .float-tooltip-kap { padding: 4px 8px !important; font: 0.8rem/1.4 system-ui, sans-serif !important; color: var(--fg) !important; background: var(--soft) !important; border: 1px solid var(--line); border-radius: 6px !important; }
 @media (max-width: 640px) { #graph-panel { left: 16px; right: 16px; width: auto; max-height: 55%; } }
+
+footer { margin-top: 3rem; padding-top: 12px; border-top: 1px solid var(--line); font-size: 0.85rem; text-align: right; }
+footer a { color: var(--muted); }
+
+/* An intentional page break. On screen only a hint that it is there. */
+.page-break { height: 0; margin: 1.5rem 0; border-top: 1px dashed var(--line); }
+.page-break::after {
+  content: "page break"; display: block; width: max-content; margin: -0.65em auto 0; padding: 0 8px;
+  font-size: 0.7rem; color: var(--muted); background: var(--bg);
+}
+.transclusion .page-break::after { background: var(--soft); }
+
+/* ---- Paper ------------------------------------------------------------
+   Book format: no site chrome, generous margins. The type is a class as well
+   as a print rule because the export page shows it on screen, as a preview.
+   No page numbers of our own: the CSS for them works in Chromium only (see
+   export.go); the print dialog's headers and footers do it everywhere. */
+@page {
+  margin: 22mm 20mm 26mm; /* no size here: a page printed with Ctrl+P uses the paper of the dialog */
+}
+
+.paper-content, .print-type {
+  font: 11pt/1.45 Georgia, "Times New Roman", serif; color: #111;
+  hyphens: auto; overflow-wrap: break-word;
+}
+.paper-content :is(h1, h2, h3, h4, h5, h6) { font-family: system-ui, sans-serif; line-height: 1.2; break-after: avoid; break-inside: avoid; }
+.paper-content h1 { font-size: 20pt; margin: 0 0 12pt; }
+.paper-content h2 { font-size: 15pt; }
+.paper-content h3 { font-size: 12.5pt; }
+.paper-content p { margin: 0 0 8pt; orphans: 3; widows: 3; }
+.paper-content :is(pre, table, figure, img, .transclusion, blockquote, li) { break-inside: avoid; }
+.paper-content pre { white-space: pre-wrap; font-size: 9pt; border: 0.5pt solid #ccc; background: #f6f6f6; }
+.paper-content a { color: inherit; text-decoration: underline; text-decoration-thickness: 0.5pt; text-underline-offset: 2pt; }
+.paper-content img { max-width: 100%; }
+.paper-content details.fold > summary { margin: 14pt 0 5pt; cursor: default; }
+.paper-content details.fold > summary::before { content: none; }
+.paper-content .doc + .doc { break-before: page; }
+.paper-content .doc-title { border-bottom: 0.5pt solid #999; padding-bottom: 4pt; }
+.paper-content .contents ol { padding-left: 1.4em; line-height: 1.9; }
+.paper-content .page-break { break-after: page; margin: 0; border: 0; }
+.paper-content .transclusion { background: none; border-left: 1.5pt solid #bbb; border-radius: 0; }
+.paper-content .transclusion-title, .paper-content .transclusion-title a { color: #555; text-decoration: none; }
+
+/* the export page on screen: a sheet of paper under a bar of options */
+html.export { --fg: #111; --muted: #555; --bg: #fff; --soft: #f6f6f6; --line: #ccc; --link: #111; color-scheme: light; }
+html.export body { max-width: none; padding: 0 0 48px; background: #e9eaec; font: 15px/1.5 system-ui, sans-serif; color: #111; }
+.export-bar {
+  position: sticky; top: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+  padding: 10px 16px; background: #fff; border-bottom: 1px solid #ccc; font-size: 0.9rem;
+}
+.export-bar label { display: flex; align-items: center; gap: 6px; }
+.export-bar label.disabled { color: #999; }
+.export-bar :is(select, button) { font: inherit; padding: 3px 8px; border: 1px solid #bbb; border-radius: 6px; background: #fff; color: #111; }
+.export-bar button { cursor: pointer; }
+.export-bar button.primary { background: #0969da; border-color: #0969da; color: #fff; }
+.export-bar .back { color: #0969da; }
+.export-bar .hint { flex-basis: 100%; margin: 0; color: #555; font-size: 0.8rem; }
+.paper { box-sizing: border-box; max-width: 100%; margin: 24px auto; background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25); }
+.paper .page-break { display: block; height: 0; margin: 10pt 0; border-top: 1px dashed #bbb; }
+.paper .page-break::after { background: #fff; color: #999; }
+
+@media print {
+  :root { --fg: #111; --muted: #555; --bg: #fff; --soft: #f6f6f6; --line: #ccc; --link: #111; color-scheme: light; }
+  body, html.export body { max-width: none; margin: 0; padding: 0; background: #fff; }
+  /* the site's furniture: navigation, search, backlinks, the export bar */
+  header, footer, aside, .warning, .export-bar, .tags, .properties, details.help, .history { display: none !important; }
+  .paper { width: auto !important; margin: 0; padding: 0 !important; box-shadow: none; }
+  .paper .page-break, .page-break { break-after: page; height: 0; margin: 0; border: 0; }
+  .page-break::after, .paper .page-break::after { content: none; }
+  /* an ordinary page, printed with Ctrl+P, gets the same type as an export */
+  article, main > h1, main > ul { font: 11pt/1.45 Georgia, "Times New Roman", serif; color: #111; }
+  article :is(h1, h2, h3, h4, h5, h6) { font-family: system-ui, sans-serif; break-after: avoid; }
+  article :is(pre, table, figure, img, .transclusion, blockquote) { break-inside: avoid; }
+  article pre { white-space: pre-wrap; font-size: 9pt; border: 0.5pt solid #ccc; }
+  article p { orphans: 3; widows: 3; }
+  a { color: inherit; }
+  details.fold > summary { cursor: default; }
+  details.fold > summary::before { content: none; }
+  .transclusion { background: none; border-radius: 0; }
+  .missing-embed, .drawing-unexported { border-color: #999; }
+}
