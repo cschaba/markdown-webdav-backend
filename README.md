@@ -115,8 +115,23 @@ means depends on the folder of the note it stands in:
 | `[[./Name]]`, `[[../Name]]` | that path from the linking note's folder, and nothing else |
 | `[[/folder/Name]]` | that path from the vault root, and nothing else |
 
-Capitals never matter, and `.md` may be left out. `[[Name|label]]` sets the
-text, `[[Name#Heading]]` jumps to a heading, `![[image.png|200]]` sets a width.
+Capitals never matter, and `.md` may be left out. As in Obsidian:
+
+| Written | Shows | Leads to |
+|---|---|---|
+| `[[Name\|alias]]` | alias | the note |
+| `[[Name#Heading]]` | Name > Heading | that heading of the note |
+| `[[Name#Heading\|alias]]` | alias | that heading |
+| `[[#Heading]]` | Heading | a heading of the same note |
+| `[[Name#Chapter#Section]]` | Name > Chapter > Section | the last heading named |
+| `[[Name#^block]]` | Name > ^block | the note; block ids have no place in the page yet |
+| `![[image.png\|200]]`, `![[image.png\|alt text]]` | the image | 200 pixels wide, or with that alt text |
+
+Headings are matched whatever their capitals, umlauts or punctuation
+(`[[Name#Maße & Gewichte]]`); of two headings with the same name a link lands on
+the first. A link to a heading the note does not have still leads to the note,
+with a dashed underline and a tooltip saying so. `[Markdown](Name.md#Heading)`
+links behave the same.
 A path that says where to look is followed strictly: if nothing is there, the
 link is marked missing rather than quietly pointed at a namesake elsewhere. A
 bare name does fall back to the whole vault, which is how Obsidian writes links

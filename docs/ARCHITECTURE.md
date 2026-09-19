@@ -80,6 +80,16 @@ repository; letting it commit would write into a history it does not own.
 Guessing "is this inside another work tree" would also hit a fresh `./vault`
 next to the source, so the operator says it.
 
+**One function names a heading.** A link to a heading works only if link and
+heading arrive at the same id. goldmark's ids skip every multi-byte character
+("Frühstück" became `frhstck`), and the link side had its own approximation of
+them that kept the umlauts, so in a German vault such links led nowhere. Now
+`render.Slug` is given to the parser for the headings and applied to the
+fragment of every link, and it keeps letters of any script. The index records
+each note's heading ids, which is what lets a link to a heading that is not
+there be marked instead of failing silently. Block references (`#^id`) lead to
+the note: rendered pages carry no block ids yet.
+
 **Private, single user.** One basic-auth login in front of everything. This is
 what makes it acceptable to skip per-note publishing rules. Even so, raw HTML is
 off and attachments are sandboxed, because notes and files get pasted in from

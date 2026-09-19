@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 
@@ -37,6 +38,10 @@ type LinkResolver interface {
 	// ResolveEmbed says what to show for ![[target]]. It is only asked
 	// about targets that ResolveLink found.
 	ResolveEmbed(from, target string) Embed
+	// HasHeading reports whether the note that target means has a heading
+	// with that id. For anything that is not a note it reports true: there
+	// is nothing to check a heading against.
+	HasHeading(from, target, id string) bool
 }
 
 // Embed is what stands in for an embedded file. With no Image the embed is
@@ -54,6 +59,7 @@ type Meta struct {
 	Title       string // front matter "title", empty if unset
 	Frontmatter map[string]any
 	Tags        []string // front matter and inline, lowercased, sorted, unique
+	Headings    []string // the ids of the note's headings, in order
 	// Links holds the targets of everything that points at another vault
 	// file: wikilinks, wikilinks inside front matter values, and relative
 	// Markdown links. Raw targets without fragment, front matter first.
@@ -112,7 +118,7 @@ func (r *Renderer) Meta(src []byte) Meta {
 // becomes a missing marker. The index skips that, since it only needs Meta, and
 // while it is being built there is nothing to resolve against yet.
 func (r *Renderer) parse(src []byte, from string, forRender bool) (ast.Node, Meta) {
-	ctx := parser.NewContext()
+	ctx := parser.NewContext(parser.WithIDs(newHeadingIDs()))
 	doc := r.md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 
 	var meta Meta
@@ -127,55 +133,87 @@ func (r *Renderer) parse(src []byte, from string, forRender bool) (ast.Node, Met
 			meta.Links = propertyLinks(meta.Frontmatter, nil)
 		}
 	}
+	// The headings first: a link further up may point at one further down.
+	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if heading, ok := n.(*ast.Heading); ok && entering {
+			if id, ok := heading.AttributeString("id"); ok {
+				meta.Headings = append(meta.Headings, string(id.([]byte)))
+			}
+		}
+		return ast.WalkContinue, nil
+	})
+
 	var unresolved []func() // applied after the walk; it must not see the tree change
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
-		var target string
-		var dest *[]byte        // set for Markdown links, whose URL gets rewritten
-		var wiki *wikilink.Node // set for wikilinks, which carry their URL to the renderer
+		var target, fragment string
+		var link *ast.Link      // a Markdown link, whose URL gets rewritten
+		var image *ast.Image    // likewise
+		var wiki *wikilink.Node // a wikilink, which carries its URL to the renderer
 		embed := false
 		switch n := n.(type) {
 		case *hashtag.Node:
 			tags[normalizeTag(string(n.Tag))] = true
 			return ast.WalkContinue, nil
 		case *wikilink.Node:
-			target, embed, wiki = string(n.Target), n.Embed, n
+			target, fragment = wikiTarget(n)
+			embed, wiki = n.Embed, n
 		case *ast.Link:
-			target, dest = internalTarget(string(n.Destination)), &n.Destination
+			target, fragment = internalTarget(string(n.Destination))
+			link = n
 		case *ast.Image:
-			target, dest, embed = internalTarget(string(n.Destination)), &n.Destination, true
-		}
-		if target == "" {
+			target, _ = internalTarget(string(n.Destination))
+			embed, image = true, n
+		default:
 			return ast.WalkContinue, nil
 		}
-		meta.Links = append(meta.Links, target)
+		if target == "" && fragment == "" {
+			return ast.WalkContinue, nil // leads out of the vault
+		}
+		if target != "" {
+			meta.Links = append(meta.Links, target)
+		}
 		if !forRender {
 			return ast.WalkContinue, nil
 		}
-		urlPath, ok := r.links.ResolveLink(from, target)
+
+		resolved := resolvedLink{anchor: anchor(fragment)}
+		if target != "" {
+			var ok bool
+			if resolved.url, ok = r.links.ResolveLink(from, target); !ok {
+				unresolved = append(unresolved, func() { markMissing(n, src, target, embed) })
+				return ast.WalkContinue, nil
+			}
+		}
+		if resolved.anchor != "" && !embed {
+			if target == "" { // [[#Heading]]: in this note
+				resolved.noHeading = !slices.Contains(meta.Headings, resolved.anchor)
+			} else {
+				resolved.noHeading = !r.links.HasHeading(from, target, resolved.anchor)
+			}
+		}
 		switch {
-		case !ok:
-			unresolved = append(unresolved, func() { markMissing(n, src, target, embed) })
 		case wiki != nil:
 			// Resolved here, not in the node renderer: only here is it known
 			// which note the link stands in.
-			resolved := resolvedLink{url: urlPath}
 			if embed {
 				resolved.embed = r.links.ResolveEmbed(from, target)
 			}
 			wiki.SetAttribute(resolvedAttr, resolved)
-		case dest != nil:
+		case image != nil:
+			image.Destination = []byte(resolved.url)
+		case link != nil:
 			// The browser would resolve "Note.md" against the linking note's
 			// URL, which works for a file next to it and for nothing else.
-			if _, fragment, _ := strings.Cut(string(*dest), "#"); fragment != "" {
-				if decoded, err := url.PathUnescape(fragment); err == nil {
-					fragment = decoded
+			link.Destination = []byte(resolved.href())
+			if resolved.noHeading {
+				link.SetAttributeString("class", []byte(noHeadingClass))
+				if link.Title == nil {
+					link.Title = []byte(noHeadingTitle)
 				}
-				urlPath += "#" + headingID(fragment)
 			}
-			*dest = []byte(urlPath)
 		}
 		return ast.WalkContinue, nil
 	})
@@ -220,19 +258,19 @@ func propertyLinks(v any, out []string) []string {
 	return out
 }
 
-// internalTarget returns the target a Markdown link destination such as
-// "Other%20note.md#heading", "../img/a.png" or "/folder/x.md" names, decoded
-// but otherwise as written, or "" for anything that leaves the vault (a URL
-// with a scheme, a bare fragment).
-func internalTarget(dest string) string {
+// internalTarget returns what a Markdown link destination such as
+// "Other%20note.md#Some%20heading", "../img/a.png", "/folder/x.md" or
+// "#heading" names: the target, decoded but otherwise as written, and the
+// fragment. Both are "" for anything that leaves the vault.
+func internalTarget(dest string) (target, fragment string) {
 	u, err := url.Parse(dest)
-	if err != nil || u.Scheme != "" || u.Host != "" || u.Path == "" {
-		return ""
+	if err != nil || u.Scheme != "" || u.Host != "" || (u.Path == "" && u.Fragment == "") {
+		return "", ""
 	}
 	if strings.HasPrefix(strings.TrimPrefix(path.Clean("/"+u.Path), "/"), "-/") {
-		return "" // one of the server's own pages, such as -/search?q=...
+		return "", "" // one of the server's own pages, such as -/search?q=...
 	}
-	return u.Path // "./" and "../" mean something: the resolver follows them
+	return u.Path, u.Fragment // "./" and "../" mean something: the resolver follows them
 }
 
 // stringList accepts the shapes Obsidian allows for list properties:
@@ -253,21 +291,6 @@ func stringList(v any) []string {
 
 func normalizeTag(tag string) string {
 	return strings.ToLower(strings.Trim(strings.TrimSpace(tag), "#/"))
-}
-
-// headingID approximates goldmark's auto heading IDs, so [[Note#Some Heading]]
-// lands on the heading.
-func headingID(heading string) string {
-	var b strings.Builder
-	for _, r := range strings.ToLower(strings.TrimSpace(heading)) {
-		switch {
-		case r == ' ' || r == '-':
-			b.WriteRune('-')
-		case r == '_' || r >= '0' && r <= '9' || r >= 'a' && r <= 'z' || r > 127:
-			b.WriteRune(r)
-		}
-	}
-	return b.String()
 }
 
 type tagResolver struct{ tagURL string }

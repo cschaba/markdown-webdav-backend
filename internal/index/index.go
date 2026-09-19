@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -179,6 +180,16 @@ func (idx *Index) ResolveLink(from, target string) (string, bool) {
 		return "", false
 	}
 	return idx.URL(p), true
+}
+
+// HasHeading implements render.LinkResolver.
+func (idx *Index) HasHeading(from, target, id string) bool {
+	p, ok := idx.Resolve(from, target)
+	if !ok {
+		return true
+	}
+	note := idx.Note(p)
+	return note == nil || slices.Contains(note.Headings, id)
 }
 
 // Resolve returns the vault path that target means in the note at from (a

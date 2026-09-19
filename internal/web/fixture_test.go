@@ -239,6 +239,39 @@ func TestFixtureVault(t *testing.T) {
 	expect("backlinks of the Twin in the root", aside(body("/test/Twin")), []string{"links/Here.md", "07 Links.md", "links/deep/Twin.md"}, nil)
 	expect("backlinks of the Twin in links/deep/", aside(body("/test/links/deep/Twin")), []string{"links/Here.md"}, []string{"07 Links.md"})
 
+	// Aliases and headings. The target note's ids first: they are what links must hit.
+	chapters := body("/test/links/Chapters")
+	expect("heading ids", chapters, []string{
+		`<h1 id="überblick">`, `<h2 id="maße--gewichte">`, `<h2 id="notes">`, `<h2 id="notes-1">`, `<h3 id="a-section">`, `<h2 id="bold-and-code">`,
+	}, nil)
+	aliases := body("/test/08%20Aliases%20and%20headings")
+	const chaptersURL, noHeading = `<a href="/test/links/Chapters`, ` class="missing-heading" title="The note has no heading of this name"`
+	expect("08 Aliases and headings", aliases, []string{
+		chaptersURL + `">the chapters</a>`,
+		chaptersURL + `#notes">alias and heading</a>`,
+		`<img src="/test/links/dot.png" alt="the red dot">`,
+		chaptersURL + `#notes">links/Chapters &gt; Notes</a>`,
+		chaptersURL + `#maße--gewichte">links/Chapters &gt; Maße &amp; Gewichte</a>`,
+		chaptersURL + `#überblick">links/Chapters &gt; überblick</a>`,
+		chaptersURL + `#bold-and-code">`,
+		chaptersURL + `#a-section">links/Chapters &gt; Notes &gt; A section</a>`,
+		chaptersURL + `">links/Chapters &gt; ^para1</a>`,
+		chaptersURL + `#no-such-heading"` + noHeading + `>`,
+		`<span class="missing" title="Not found in this vault: Nowhere">`,
+		`<a href="#alias">Alias</a>`, `<a href="#markdown-links">further down</a>`, `<a href="#nothing"` + noHeading + `>Nothing</a>`,
+		chaptersURL + `#notes">text</a>`, chaptersURL + `#ma%C3%9Fe--gewichte">umlauts</a>`, `<a href="#alias">in this note</a>`,
+	}, nil)
+	if n := strings.Count(aliases, "missing-heading"); n != 2 {
+		t.Errorf("08: %d links marked as pointing at a missing heading, want 2", n)
+	}
+	// every anchor the page links to exists in the note it points at
+	for _, m := range regexp.MustCompile(`href="/test/links/Chapters#([^"]+)"( class="missing-heading")?`).FindAllStringSubmatch(aliases, -1) {
+		id, _ := url.PathUnescape(m[1])
+		if exists := strings.Contains(chapters, `id="`+id+`"`); exists == (m[2] != "") {
+			t.Errorf("anchor %q: exists in the note = %v, marked missing = %v", id, exists, m[2] != "")
+		}
+	}
+
 	// Search. Every page has the box; the results come best match first.
 	expect("search box", index, []string{`<form class="search" action="/test/-/search" role="search">`, `name="q" value=""`}, nil)
 	// rows cuts the result list into its rows and picks three things out of
@@ -352,7 +385,7 @@ func TestFixtureVault(t *testing.T) {
 	expect("v1.2 plan", body("/test/v1.2%20plan"), []string{"this body text must still render"}, nil)
 
 	tags := regexp.MustCompile(`<[^>]+>`).ReplaceAllString(body("/test/-/tags"), "")
-	expect("tags", tags, []string{"#test 8", "#test/links 1", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
+	expect("tags", tags, []string{"#test 9", "#test/links 2", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
 	expect("tag page", body("/test/-/tag/test"), []string{"01 Formatting.md", "02 Code and Diagrams.md", "sub/03 Nested.md", "00 Index.md"}, []string{"v1.2"})
 	expect("unicode tag", body("/test/-/tag/%C3%BCberpr%C3%BCfung"), []string{"00 Index.md"}, nil)
 
