@@ -15,9 +15,13 @@ import { writeFileSync } from "node:fs";
 const [port, base, out] = [process.argv[2], process.argv[3], process.argv[4]];
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let target;
-for (let i = 0; i < 50 && !target; i++) {
-  try { target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find(t => t.type === "page"); } catch { await sleep(200); }
+// A browser starting cold on a CI runner can take its time; and one that is
+// up but has no page yet must be waited for too, not asked 50 times at once.
+for (const deadline = Date.now() + 60000; !target && Date.now() < deadline; ) {
+  try { target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find(t => t.type === "page"); } catch { /* not listening yet */ }
+  if (!target) await sleep(200);
 }
+if (!target) { console.error(`no browser page on port ${port} after 60 s`); process.exit(2); }
 const ws = new WebSocket(target.webSocketDebuggerUrl);
 await new Promise(r => ws.addEventListener("open", r));
 let id = 0; const pending = new Map();
