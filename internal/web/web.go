@@ -58,6 +58,7 @@ func New(cfg Config) (*Handler, error) {
 	h := &Handler{Config: cfg, prefix: "/" + cfg.Name, root: root, mux: http.NewServeMux()}
 	h.mux.HandleFunc("GET /-/tags", h.tags)
 	h.mux.HandleFunc("GET /-/search", h.search)
+	h.mux.HandleFunc("POST /-/search/clear", h.clearHistory)
 	h.mux.HandleFunc("GET /-/graph", h.graph)
 	h.mux.HandleFunc("GET /-/graph.json", h.graphData)
 	h.mux.HandleFunc("GET "+index.TagPath+"{tag...}", h.tag)
@@ -79,18 +80,21 @@ type page struct {
 	TagsURL   string
 	GraphURL  string
 	SearchURL string
-	Query     string // what the search box shows
-	Wide      bool   // the page uses the whole window, not a text column
+	Query     string   // what the search box shows
+	History   []string // recent searches, offered by the search box
+	Wide      bool     // the page uses the whole window, not a text column
 	Crumbs    []crumb
 	Warning   string
 	Body      any
 }
 
-func (h *Handler) render(w http.ResponseWriter, name string, title string, crumbs []crumb, body any) {
+func (h *Handler) render(w http.ResponseWriter, r *http.Request, name string, title string, crumbs []crumb, body any) {
 	p := page{Title: title, Vault: h.Name, Vaults: h.Vaults, TagsURL: h.prefix + "/-/tags", GraphURL: h.prefix + "/-/graph",
 		SearchURL: h.prefix + "/-/search", Wide: name == "graph.html", Crumbs: crumbs, Body: body}
 	if results, ok := body.(searchBody); ok {
-		p.Query = results.Query
+		p.Query, p.History = results.Query, results.History // as just updated, not as the request had it
+	} else {
+		p.History = h.history(r)
 	}
 	if h.Warning != nil {
 		if err := h.Warning(); err != nil {
@@ -242,7 +246,7 @@ func (h *Handler) directory(w http.ResponseWriter, r *http.Request, rel string) 
 	if rel != "." {
 		title = path.Base(rel)
 	}
-	h.render(w, "directory.html", title, h.crumbs(rel), entries)
+	h.render(w, r, "directory.html", title, h.crumbs(rel), entries)
 }
 
 type property struct {
@@ -287,7 +291,7 @@ func (h *Handler) note(w http.ResponseWriter, r *http.Request, rel string) {
 	if title == "" {
 		title = strings.TrimSuffix(path.Base(rel), path.Ext(rel))
 	}
-	h.render(w, "note.html", title, h.crumbs(rel), body)
+	h.render(w, r, "note.html", title, h.crumbs(rel), body)
 }
 
 type drawingBody struct {
@@ -308,7 +312,7 @@ func (h *Handler) drawing(w http.ResponseWriter, r *http.Request, rel string) {
 	if note := h.Index.Note(rel); note != nil {
 		title = note.Title
 	}
-	h.render(w, "drawing.html", title, h.crumbs(rel), body)
+	h.render(w, r, "drawing.html", title, h.crumbs(rel), body)
 }
 
 func formatValue(v any) string {
@@ -367,8 +371,10 @@ func scriptable(name string) bool {
 }
 
 type searchBody struct {
-	Query   string
-	Results []index.SearchResult
+	Query     string
+	Results   []index.SearchResult
+	History   []string
+	SearchURL string
 }
 
 func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
@@ -377,13 +383,19 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) {
 	if q != "" {
 		title = q + " – Search"
 	}
-	h.render(w, "search.html", title, append(h.crumbs(""), crumb{"Search", h.prefix + "/-/search"}),
-		searchBody{Query: q, Results: h.Index.Search(q)})
+	body := searchBody{Query: q, Results: h.Index.Search(q), SearchURL: h.prefix + "/-/search"}
+	if len(body.Results) > 0 {
+		// Only what found something: a typo is not worth one of few places.
+		body.History = h.remember(w, r, q)
+	} else {
+		body.History = h.history(r)
+	}
+	h.render(w, r, "search.html", title, append(h.crumbs(""), crumb{"Search", h.prefix + "/-/search"}), body)
 }
 
 // graph is the page; the script on it fetches graphData.
 func (h *Handler) graph(w http.ResponseWriter, r *http.Request) {
-	h.render(w, "graph.html", "Graph", append(h.crumbs(""), crumb{"Graph", h.prefix + "/-/graph"}), nil)
+	h.render(w, r, "graph.html", "Graph", append(h.crumbs(""), crumb{"Graph", h.prefix + "/-/graph"}), nil)
 }
 
 func (h *Handler) graphData(w http.ResponseWriter, r *http.Request) {
@@ -404,12 +416,12 @@ func (h *Handler) tags(w http.ResponseWriter, r *http.Request) {
 		list = append(list, tagCount{tag, h.Index.TagURL(tag), count})
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Tag < list[j].Tag })
-	h.render(w, "tags.html", "Tags", append(h.crumbs(""), crumb{"Tags", h.prefix + "/-/tags"}), list)
+	h.render(w, r, "tags.html", "Tags", append(h.crumbs(""), crumb{"Tags", h.prefix + "/-/tags"}), list)
 }
 
 func (h *Handler) tag(w http.ResponseWriter, r *http.Request) {
 	tag := strings.Trim(r.PathValue("tag"), "/")
-	h.render(w, "tag.html", "#"+tag,
+	h.render(w, r, "tag.html", "#"+tag,
 		append(h.crumbs(""), crumb{"Tags", h.prefix + "/-/tags"}, crumb{"#" + tag, h.Index.TagURL(tag)}),
 		h.Index.Tagged(tag))
 }

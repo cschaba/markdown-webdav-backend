@@ -9,7 +9,8 @@
 <body{{if .Wide}} class="wide"{{end}}>
 <header>
 <nav class="crumbs">{{range $i, $c := .Crumbs}}{{if $i}} / {{end}}<a href="{{$c.URL}}">{{$c.Name}}</a>{{end}}</nav>
-<nav>{{with .SearchURL}}<form class="search" action="{{.}}" role="search"><input type="search" name="q" value="{{$.Query}}" placeholder="Search…" aria-label="Search this vault"></form> {{end}}{{with .GraphURL}}<a href="{{.}}">Graph</a> {{end}}{{with .TagsURL}}<a href="{{.}}">Tags</a>{{end}}{{if gt (len .Vaults) 1}}
+<nav>{{with .SearchURL}}<form class="search" action="{{.}}" role="search"><label for="search-q" title="{{if $.History}}Recent searches{{else}}Search{{end}}"><svg viewBox="0 0 22 16" width="22" height="16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4 4"/>{{if $.History}}<path class="more" d="M16.5 6.5l2 2 2-2"/>{{end}}</svg></label><input id="search-q" type="search" name="q" value="{{$.Query}}" placeholder="Search…" aria-label="Search this vault" autocomplete="off">{{if $.History}}
+<ul class="search-history" aria-label="Recent searches">{{range $.History}}<li><a href="{{$.SearchURL}}?q={{.}}">{{.}}</a></li>{{end}}</ul>{{end}}</form> {{end}}{{with .GraphURL}}<a href="{{.}}">Graph</a> {{end}}{{with .TagsURL}}<a href="{{.}}">Tags</a>{{end}}{{if gt (len .Vaults) 1}}
 <span class="switch">{{range .Vaults}}{{if eq .Name $.Vault}}<strong>{{.Name}}</strong>{{else}}<a href="{{.URL}}">{{.Name}}</a>{{end}} {{end}}</span>{{end}}</nav>
 </header>
 {{with .Warning}}<p class="warning">{{.}}</p>{{end}}

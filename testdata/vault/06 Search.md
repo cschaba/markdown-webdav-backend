@@ -16,6 +16,17 @@ The percentage is a fixed scale, not a comparison with the other results: 100%
 is as good as a note named exactly what was searched for. The signals add up. With only `tag:` or `path:`
 there is nothing to rank, and no percentage.
 
+## History
+
+Each of the links on this page, once followed, shows up under *Recent searches*
+on the search page, and in the list that drops down from the search box when it
+is clicked, or its magnifier is — newest on top, ten at most, no duplicates,
+scrolling once there are more than six. ["frame rigid"](-/search?q=%22frame+rigid%22) and
+[versionNonce](-/search?q=versionNonce) find only this page, but they find
+something, so they are kept; [xyzzy-nothing](-/search?q=xyzzy-nothing) would be
+too, for the same reason. Type something that finds nothing to see it left out.
+*Clear history* forgets them all; *Clear search* only empties the box.
+
 ## Operators
 
 This page quotes every query below, so it is itself among the results each

@@ -83,6 +83,15 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
   tag, property value, heading, path, text), pinned by `TestSearchRanking`. Anything that makes
   the scan slower shows at once in the timings in `docs/ARCHITECTURE.md`:
   re-measure the same way after touching it, do not estimate.
+- Search history (`internal/web/history.go`) is a cookie the server reads and
+  writes; there is no script and no server-side state. The dropdown under the
+  search box opens through CSS `:focus-within`; the magnifier is the field's
+  `<label>`, so a click on it focuses the field. Both choices are for Safari,
+  which focuses neither a clicked link nor a clicked button — read the
+  comments in `style.css` before "simplifying" them. What only shows on focus
+  cannot be screenshotted or tested from the HTML:
+  `tools/check-search-dropdown.mjs` drives a real browser (usage in the file). Whatever comes back in
+  that cookie is untrusted input. Anything that changes state is a POST.
 - Graph view: data from `Index.Graph` (`internal/index/graph.go`), drawn by
   `internal/web/static/graph.js` with the force-graph library. **The four group
   colours are validated, not chosen**: they are the largest subset of the
