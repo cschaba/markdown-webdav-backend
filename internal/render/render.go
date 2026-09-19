@@ -66,6 +66,8 @@ type Meta struct {
 	Tags        []string // front matter and inline, lowercased, sorted, unique
 	Headings    []string // the ids of the note's headings, in order
 	Slides      int      // how many slides the note makes, see slides.go; 1 if it has no separator
+	Words       int      // what a reader sees, see words.go
+	Characters  int
 
 	needsMermaid bool // an embedded note has diagrams; the page must load the script
 	// Links holds the targets of everything that points at another vault
@@ -171,6 +173,9 @@ func (r *Renderer) parse(md goldmark.Markdown, src []byte, from string, forRende
 		}
 		return ast.WalkContinue, nil
 	})
+
+	// Before the embeds are put in: their text belongs to other notes.
+	meta.Words, meta.Characters = countText(doc, src)
 
 	if embedded {
 		meta.needsMermaid = prepareEmbedded(doc) // after the ids were collected: sections are found by them

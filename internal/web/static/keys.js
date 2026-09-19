@@ -198,6 +198,7 @@
     { keys: "gr", does: "Go to the graph", run: function () { go('header nav a[href$="/-/graph"]'); } },
     { keys: "gp", does: "Go to the PDF export of this page", run: function () { go('footer a[href*="/-/export"]'); } },
     { keys: "gs", does: "Go to the slide show of this note, if it has slides", run: function () { go('footer a[href*="/-/slides"]'); } },
+    { keys: "i", does: "Show or hide the statistics of this note: words, reading time, links", run: function () { toggleStats(); } },
     { keys: "Tab", does: "The browser's own way from link to link; Shift+Tab goes back" },
 
     { group: "Scrolling" },
@@ -234,6 +235,28 @@
     off = !on;
   }
   var off = !enabled();
+
+  // ---- a note's statistics --------------------------------------------------
+  // Shown or hidden for every note alike: whoever wants the word count wants it
+  // on the next note too. The choice is remembered like the switch above.
+
+  var STATS_KEY = "note-stats-shown";
+  var stats = document.getElementById("note-stats"), statsButton = document.getElementById("stats-button");
+  function showStats(on) {
+    if (!stats) return;
+    stats.hidden = !on;
+    if (statsButton) statsButton.setAttribute("aria-expanded", on ? "true" : "false");
+  }
+  function toggleStats() {
+    if (!stats) return;
+    var on = stats.hidden;
+    showStats(on);
+    try { on ? localStorage.setItem(STATS_KEY, "1") : localStorage.removeItem(STATS_KEY); } catch (e) { /* not remembered, still shown */ }
+  }
+  if (stats) {
+    try { showStats(localStorage.getItem(STATS_KEY) === "1"); } catch (e) { /* hidden, as served */ }
+    if (statsButton) { statsButton.hidden = false; statsButton.addEventListener("click", toggleStats); }
+  }
 
   // ---- the help -------------------------------------------------------------
 

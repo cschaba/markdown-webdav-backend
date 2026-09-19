@@ -111,6 +111,7 @@ type page struct {
 	Version   string   // of the server, shown at the foot
 	ExportURL string   // set on pages that can be exported to PDF
 	SlidesURL string   // set on notes that have slide separators
+	Stats     bool     // the page has statistics to show, see stats.go
 	Query     string   // what the search box shows
 	History   []string // recent searches, offered by the search box
 	Wide      bool     // the page uses the whole window, not a text column
@@ -133,8 +134,11 @@ func (h *Handler) render(w http.ResponseWriter, r *http.Request, name string, ti
 	if e, ok := body.(exportable); ok {
 		p.ExportURL = h.exportURL(e.vaultPath())
 	}
-	if note, ok := body.(noteBody); ok && note.Slides > 1 {
-		p.SlidesURL = h.slidesURL(note.Path)
+	if note, ok := body.(noteBody); ok {
+		if note.Slides > 1 {
+			p.SlidesURL = h.slidesURL(note.Path)
+		}
+		p.Stats = true
 	}
 	if h.Warning != nil {
 		if err := h.Warning(); err != nil {
@@ -352,6 +356,7 @@ type noteBody struct {
 	Properties []property
 	Tags       []tagLink
 	Backlinks  []*index.Note
+	Stats      []stat
 }
 
 func (h *Handler) note(w http.ResponseWriter, r *http.Request, rel string) {
@@ -377,6 +382,7 @@ func (h *Handler) note(w http.ResponseWriter, r *http.Request, rel string) {
 		body.Properties = append(body.Properties, property{key, formatValue(value)})
 	}
 	sort.Slice(body.Properties, func(i, j int) bool { return body.Properties[i].Key < body.Properties[j].Key })
+	body.Stats = h.noteStats(rel, src, meta, len(body.Backlinks))
 
 	title := meta.Title
 	if title == "" {

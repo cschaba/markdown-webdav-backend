@@ -70,6 +70,17 @@ func TestFixtureVault(t *testing.T) {
 		`<a href="/test/-/tags">Tags</a>`,
 	}, []string{`Does Not Exist</a>`})
 
+	// A note's statistics: in the page, hidden until asked for, and a button
+	// at the foot that opens them without the key.
+	expect("11 Keyboard", body("/test/11%20Keyboard"), []string{
+		`<section id="note-stats" class="note-stats" aria-label="Statistics of this note" hidden>`,
+		`<div><dt>Backlinks</dt><dd>1</dd></div>`,
+		`<button type="button" id="stats-button" aria-controls="note-stats" aria-expanded="false" hidden>Statistics <kbd>i</kbd></button>`,
+	}, []string{"<dt>Tasks</dt>"})
+	// counted as the task search counts them
+	expect("06 Search", body("/test/06%20Search"), []string{`<div><dt>Tasks</dt><dd>1 of 3 done</dd></div>`}, nil)
+	expect("a folder", body("/test/"), nil, []string{`id="note-stats"`, `id="stats-button"`})
+
 	// The About page counts the vault; the numbers follow the vault's pages,
 	// so only that it counts is checked here, the counting in index.TestStats.
 	expect("About", body("/test/-/about"), []string{
@@ -315,7 +326,7 @@ func TestFixtureVault(t *testing.T) {
 		t.Error("09: the embedded diagram needs the script, once")
 	}
 	// the page's own heading ids are its own: nothing embedded brought an id along
-	if ids := regexp.MustCompile(` id="([^"]*)"`).FindAllStringSubmatch(embeds, -1); len(ids) != 7 {
+	if ids := regexp.MustCompile(` id="([^"]*)"`).FindAllStringSubmatch(strings.Replace(embeds, ` id="note-stats"`, "", 1), -1); len(ids) != 7 {
 		t.Errorf("09: %d ids on the page, want its own 7 headings: %v", len(ids), ids)
 	}
 	// On its own page Menu does embed the recipe, and an embed counts as a link.

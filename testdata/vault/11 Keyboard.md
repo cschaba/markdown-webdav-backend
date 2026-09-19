@@ -14,6 +14,8 @@ Every page can be used without a mouse. Press `?` for the list of keys, or use
 - `/` goes to the search field. *Arrow down* there walks the recent searches,
   *Esc* leaves the field.
 - `-` goes up to the folder, `gh` home, `gt` to the tags, `H` back.
+- `i` shows this note's statistics above, and hides them again: words,
+  reading time, links. [[06 Search]] has tasks, and shows them counted.
 
 On a list — a folder (press `-` to see this vault's), the tags, search results — `j` and
 `k` move from item to item instead, and *Enter* opens the one in focus.

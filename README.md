@@ -30,6 +30,7 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Several vaults, switchable in the browser | works |
 | Graph view of notes and links, coloured by tag | works, loads the force-graph library from a CDN |
 | About page: the version, a link to the source, the vault's statistics | works |
+| A note's statistics, words and reading time among them | works, `i` or *Statistics* at the foot |
 | Mermaid diagrams | works, rendered in the browser; loads mermaid.js from a CDN |
 | Syntax highlighting | works |
 | Excalidraw drawings | works through the plugin's exported picture, see below |
@@ -161,6 +162,7 @@ of every page.
 | `H` / `L` | back and forward in the browser's history |
 | `-` | up, to the folder the page is in |
 | `gh` / `gt` / `gr` / `gp` / `gs` | go home, to the tags, to the graph, to the PDF export, to the slide show |
+| `i` | show or hide the statistics of a note, also under *Statistics* at the foot |
 | `Tab` | the browser's own way from link to link |
 
 **Focus is the browser's own.** Moving through a list or to a heading moves the
@@ -186,6 +188,19 @@ first Tab on a page reaches a *Skip to content* link; the help is a modal dialog
 that keeps the focus and gives it back; scrolling is not animated where the
 system asks for reduced motion. None of it needs a mouse, and without
 JavaScript the pages work as before, by Tab and Enter.
+
+## A note's statistics
+
+`i`, or *Statistics* at the foot of a note, shows what the note holds: words,
+characters, reading time (at 200 words a minute), headings, links, backlinks,
+tasks done and open, slides, size and the last change. Pressed again, it hides
+them. Shown or hidden stays that way from note to note, remembered per browser.
+
+Words are counted in what a reader sees: the text and code of the note and the
+labels of its links, not its front matter, the source of a diagram, or the text
+of a note embedded in it. A word is anything between spaces with a letter or
+digit in it. Obsidian counts the Markdown source instead, so the two can differ
+by a little. Tasks follow the task search, so a `[-]` counts as done.
 
 ## Links
 

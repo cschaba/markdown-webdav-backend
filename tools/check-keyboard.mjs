@@ -144,6 +144,22 @@ check("gt goes to the tags", await js("location.pathname") === "/test/-/tags", a
 await type("gh"); await sleep(800);
 check("gh goes home", await js("location.pathname") === "/test/", await js("location.pathname"));
 
+console.log("--- a note's statistics");
+await open("/test/11%20Keyboard");
+const statsState = () => js(`(s => (s.hidden ? "hidden" : "shown") + "," + document.getElementById("stats-button").getAttribute("aria-expanded"))(document.getElementById("note-stats"))`);
+check("they start hidden, the button at the foot says so", await statsState() === "hidden,false", await statsState());
+await press("i"); await sleep(100);
+check("i shows them", await statsState() === "shown,true", await statsState());
+await open("/test/01%20Formatting");
+check("and they stay shown on the next note", await statsState() === "shown,true", await statsState());
+await press("i"); await sleep(100);
+check("i hides them again", await statsState() === "hidden,false", await statsState());
+await js(`document.getElementById("stats-button").click()`); await sleep(100);
+check("the button at the foot does the same without a key", await statsState() === "shown,true", await statsState());
+await js(`document.getElementById("stats-button").click()`); await sleep(100);
+await open("/test/");
+check("a folder has neither panel nor button", await js(`!document.getElementById("note-stats") && !document.getElementById("stats-button")`), "found one");
+
 console.log("--- link hints");
 await open("/test/00%20Index");
 await press("f");
