@@ -47,6 +47,11 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
 - **Everything that should produce a backlink goes into `Meta.Links`**
   (wikilinks, wikilinks in front matter, relative Markdown links and images).
   Backlinks are derived from that one list.
+- **A link is resolved from the note it stands in**: `Index.Resolve(from,
+  target)`, rules in its comment and in the README. Every consumer passes the
+  linking note — rendering, backlinks, the graph, drawing exports. A new one
+  that passes `""` silently resolves from the vault root and will be right for
+  every test whose notes lie in the root.
 - **Paths in `index` and `vault` are vault-relative, slash-separated, no leading
   slash.** URLs into a vault are built only through `Index.URL` / `Index.TagURL`,
   which add the vault's prefix (`/<name>`). A hand-built `"/" + path` works in a
@@ -70,7 +75,8 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
 
 - Links into the vault (`internal/render/links.go`): the library parses
   wikilinks, we render them. `render.parse` resolves every wikilink, Markdown
-  link and image; what has no file behind it is replaced by a `missing` node
+  link and image — there, not in the node renderer, because only `parse` knows
+  which note it is rendering; the result travels on the node. what has no file behind it is replaced by a `missing` node
   and shows as a dashed "missing" marker, never as a dead link or a
   broken-image icon. A missing target still goes into `Meta.Links`.
 - Foldable headings (`internal/render/fold.go`) are an AST transformer that

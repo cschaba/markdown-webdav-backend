@@ -52,14 +52,11 @@ func (idx *Index) IsDrawing(rel string) bool {
 // ("Export both dark- and light-themed image"). Both are empty when the
 // drawing was never exported.
 func (idx *Index) DrawingImages(rel string) (image, dark string) {
-	name, dir := DrawingName(rel), path.Dir(rel)
+	name := DrawingName(rel)
 	find := func(file string) string {
-		// Beside the drawing is where the plugin puts it; anywhere else in
-		// the vault covers a configured export folder.
-		if p, ok := idx.Resolve(path.Join(dir, file)); ok {
-			return idx.URL(p)
-		}
-		if p, ok := idx.Resolve(file); ok {
+		// Resolved like a link in the drawing: beside it is where the plugin
+		// puts the export; anywhere else covers a configured export folder.
+		if p, ok := idx.Resolve(rel, file); ok {
 			return idx.URL(p)
 		}
 		return ""
@@ -84,8 +81,8 @@ func (idx *Index) DrawingImages(rel string) (image, dark string) {
 }
 
 // ResolveEmbed implements render.LinkResolver.
-func (idx *Index) ResolveEmbed(target string) render.Embed {
-	p, ok := idx.Resolve(target)
+func (idx *Index) ResolveEmbed(from, target string) render.Embed {
+	p, ok := idx.Resolve(from, target)
 	switch {
 	case !ok:
 		return render.Embed{}

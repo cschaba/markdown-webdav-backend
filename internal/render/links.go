@@ -75,15 +75,24 @@ var imageExt = map[string]bool{
 // IsImage reports whether a file is shown as a picture when embedded.
 func IsImage(name string) bool { return imageExt[strings.ToLower(path.Ext(name))] }
 
-type linkExtender struct{ links LinkResolver }
+type linkExtender struct{}
 
-func (e linkExtender) Extend(md goldmark.Markdown) {
+func (linkExtender) Extend(md goldmark.Markdown) {
 	// Below goldmark's own link parser (200), so "[[" is seen first.
 	md.Parser().AddOptions(parser.WithInlineParsers(util.Prioritized(&wikilink.Parser{}, 199)))
-	md.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(linkRenderer(e), 199)))
+	md.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(linkRenderer{}, 199)))
 }
 
-type linkRenderer struct{ links LinkResolver }
+// resolvedLink is what Renderer.parse found out about a wikilink. It travels
+// on the node, because a node renderer is not told which note it is rendering.
+type resolvedLink struct {
+	url   string
+	embed Embed
+}
+
+var resolvedAttr = []byte("data-resolved")
+
+type linkRenderer struct{}
 
 func (r linkRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(wikilink.Kind, r.wikilink)
@@ -102,20 +111,17 @@ func (r linkRenderer) wikilink(w util.BufWriter, src []byte, node ast.Node, ente
 		}
 		return ast.WalkContinue, nil
 	}
-	dest := ""
-	if len(n.Target) > 0 {
-		// Unresolved targets were replaced by a missing marker in parse;
-		// one that vanishes in between degrades to a dead link.
-		dest, _ = r.links.ResolveLink(string(n.Target))
+	// Unresolved targets were replaced by a missing marker in parse. What
+	// remains is resolved, or has no target at all: [[#Heading]].
+	var resolved resolvedLink
+	if v, ok := n.Attribute(resolvedAttr); ok {
+		resolved = v.(resolvedLink)
 	}
+	dest, embed := resolved.url, resolved.embed
 	if len(n.Fragment) > 0 {
 		dest += "#" + headingID(string(n.Fragment))
 	}
 	href := string(util.EscapeHTML([]byte(dest)))
-	var embed Embed
-	if n.Embed && len(n.Target) > 0 {
-		embed = r.links.ResolveEmbed(string(n.Target))
-	}
 	switch {
 	case embed.Image == "" && embed.Drawing:
 		// The server does not draw Excalidraw scenes itself; say what is

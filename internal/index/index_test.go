@@ -54,12 +54,12 @@ func TestResolve(t *testing.T) {
 		"photo.png":     "img/photo.png",
 		"img/photo.png": "img/photo.png",
 	} {
-		if got, ok := idx.Resolve(target); !ok || got != want {
+		if got, ok := idx.Resolve("", target); !ok || got != want {
 			t.Errorf("Resolve(%q) = %q, %v; want %q", target, got, ok, want)
 		}
 	}
 	for _, target := range []string{"Missing", "Deleted", "app.json", "", "lan"} {
-		if got, ok := idx.Resolve(target); ok {
+		if got, ok := idx.Resolve("", target); ok {
 			t.Errorf("Resolve(%q) = %q; want no match", target, got)
 		}
 	}
@@ -114,7 +114,7 @@ func TestUpdate(t *testing.T) {
 	if tags := idx.Tags(); tags["two"] != 1 || tags["one"] != 0 {
 		t.Errorf("tags after update = %v", tags)
 	}
-	if got, ok := idx.Resolve("New"); !ok || got != "New.md" {
+	if got, ok := idx.Resolve("", "New"); !ok || got != "New.md" {
 		t.Errorf("new note not resolvable: %q %v", got, ok)
 	}
 	if n := len(idx.byName["new.md"]); n != 1 {
@@ -122,7 +122,7 @@ func TestUpdate(t *testing.T) {
 	}
 	os.Remove(filepath.Join(root, "New.md"))
 	idx.Update("New.md")
-	if _, ok := idx.Resolve("New"); ok {
+	if _, ok := idx.Resolve("", "New"); ok {
 		t.Error("removed note still resolvable")
 	}
 }
@@ -164,5 +164,93 @@ func TestGraph(t *testing.T) {
 	}
 	if strings.Join(links, "\n") != strings.Join(wantLinks, "\n") {
 		t.Errorf("links:\n%s\nwant:\n%s", strings.Join(links, "\n"), strings.Join(wantLinks, "\n"))
+	}
+}
+
+func TestResolveFromTheLinkingNote(t *testing.T) {
+	root := writeVault(t, map[string]string{
+		"Twin.md":           "",
+		"area/Twin.md":      "",
+		"area/Page.md":      "[[Twin]] [[../Twin]]",
+		"area/deep/Twin.md": "",
+		"area/deep/Page.md": "[[Twin]]",
+		"area/deep/pic.png": "",
+		"img/pic.png":       "",
+		"other/Only.md":     "",
+		"other/sub/Leaf.md": "",
+		"v1.2 plan.md":      "",
+	})
+	idx := New(root, "")
+	if err := idx.Rebuild(); err != nil {
+		t.Fatal(err)
+	}
+	type c struct{ from, target, want string }
+	for _, tc := range []c{
+		// a name: next to the linking note first...
+		{"area/Page.md", "Twin", "area/Twin.md"},
+		{"area/deep/Page.md", "Twin", "area/deep/Twin.md"},
+		{"Home.md", "Twin", "Twin.md"},
+		{"", "Twin", "Twin.md"},
+		{"area/deep/Page.md", "pic.png", "area/deep/pic.png"},
+		// ...then anywhere, the shortest path winning
+		{"area/Page.md", "Only", "other/Only.md"},
+		{"other/Only.md", "Twin", "Twin.md"},
+		{"area/Page.md", "pic.png", "img/pic.png"},
+		{"area/Page.md", "v1.2 plan", "v1.2 plan.md"},
+		// a plain path: relative to the note, then from the root, then as the end of a path
+		{"area/Page.md", "deep/Twin", "area/deep/Twin.md"},
+		{"area/Page.md", "other/Only", "other/Only.md"},
+		{"area/Page.md", "sub/Leaf", "other/sub/Leaf.md"},
+		{"area/Page.md", "area/Twin", "area/Twin.md"},
+		{"area/Page.md", "DEEP/twin.MD", "area/deep/Twin.md"},
+		// ./ and ../ are followed, and nothing else is tried
+		{"area/Page.md", "./Twin", "area/Twin.md"},
+		{"area/Page.md", "./deep/Twin", "area/deep/Twin.md"},
+		{"area/Page.md", "../Twin", "Twin.md"},
+		{"area/deep/Page.md", "../Twin", "area/Twin.md"},
+		{"area/deep/Page.md", "../../Twin", "Twin.md"},
+		{"area/deep/Page.md", "../../img/pic.png", "img/pic.png"},
+		{"area/Page.md", "./Only", ""},     // exists, but not there
+		{"area/Page.md", "../Only", ""},    // likewise
+		{"area/Page.md", "../../Twin", ""}, // above the vault
+		{"area/Page.md", "../../../etc/passwd", ""},
+		// a leading slash means the vault root, and nothing else is tried
+		{"area/Page.md", "/Twin", "Twin.md"},
+		{"area/Page.md", "/area/deep/Twin", "area/deep/Twin.md"},
+		{"area/Page.md", "/img/pic.png", "img/pic.png"},
+		{"area/Page.md", "/Only", ""},
+		{"area/Page.md", "/deep/Twin", ""},
+		{"area/Page.md", "/../Twin", "Twin.md"}, // cannot climb out of the root
+		{"area/Page.md", "/", ""},
+		{"area/Page.md", "", ""},
+		{"area/Page.md", "Nowhere", ""},
+	} {
+		got, ok := idx.Resolve(tc.from, tc.target)
+		if got != tc.want || ok != (tc.want != "") {
+			t.Errorf("Resolve(%q, %q) = %q, %v; want %q", tc.from, tc.target, got, ok, tc.want)
+		}
+	}
+
+	// Backlinks and the graph follow the same rules: each Twin has its own.
+	for twin, want := range map[string]string{"area/Twin.md": "area/Page.md", "area/deep/Twin.md": "area/deep/Page.md", "Twin.md": "area/Page.md"} {
+		var from []string
+		for _, n := range idx.Backlinks(twin) {
+			from = append(from, n.Path)
+		}
+		if got := strings.Join(from, ","); got != want {
+			t.Errorf("backlinks of %s = %q, want %q", twin, got, want)
+		}
+	}
+	links := map[string]bool{}
+	for _, l := range idx.Graph().Links {
+		links[l.Source+" -> "+l.Target] = true
+	}
+	for _, want := range []string{"area/Page.md -> area/Twin.md", "area/Page.md -> Twin.md", "area/deep/Page.md -> area/deep/Twin.md"} {
+		if !links[want] {
+			t.Errorf("graph lacks %s (has %v)", want, links)
+		}
+	}
+	if links["area/deep/Page.md -> Twin.md"] {
+		t.Error("graph resolved [[Twin]] vault-wide instead of next to the note")
 	}
 }

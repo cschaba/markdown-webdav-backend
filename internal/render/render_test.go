@@ -8,12 +8,12 @@ import (
 
 type fakeLinks map[string]string
 
-func (f fakeLinks) ResolveLink(target string) (string, bool) {
+func (f fakeLinks) ResolveLink(from, target string) (string, bool) {
 	url, ok := f[target]
 	return url, ok
 }
 
-func (f fakeLinks) ResolveEmbed(target string) Embed {
+func (f fakeLinks) ResolveEmbed(from, target string) Embed {
 	switch {
 	case IsImage(target):
 		return Embed{Image: f[target]}
@@ -32,7 +32,7 @@ func TestRender(t *testing.T) {
 		"<script>alert(1)</script>\n\n" +
 		"```go\nfunc main() {}\n```\n\n" +
 		"```mermaid\ngraph TD; A-->B;\n```\n"
-	html, meta, err := r.Render([]byte(src))
+	html, meta, err := r.Render([]byte(src), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,22 +67,22 @@ func TestRender(t *testing.T) {
 }
 
 func TestBrokenFrontmatterStillRenders(t *testing.T) {
-	html, _, err := New(fakeLinks{}, "/-/tag/").Render([]byte("---\ntags: [unclosed\n---\nBody text"))
+	html, _, err := New(fakeLinks{}, "/-/tag/").Render([]byte("---\ntags: [unclosed\n---\nBody text"), "")
 	if err != nil || !strings.Contains(string(html), "Body text") {
 		t.Errorf("html = %q, err = %v", html, err)
 	}
 }
 
 func TestEveryKindOfLinkIsRecorded(t *testing.T) {
-	r := New(fakeLinks{"Other note.md": "/deep/Other%20note", "img/a.png": "/img/a.png"}, "/-/tag/")
+	r := New(fakeLinks{"Other note.md": "/deep/Other%20note", "../img/a.png": "/img/a.png"}, "/-/tag/")
 	src := "---\nrelated:\n  - \"[[Prop Note|label]]\"\nsource: \"see [[Second#Part]] too\"\n---\n" +
 		"[md](Other%20note.md#Some%20Heading) ![pic](../img/a.png) [ext](https://example.com/x.md) " +
 		"[frag](#local) [search](-/search?q=x) [[Wiki]] `[[code]]`\n"
-	html, meta, err := r.Render([]byte(src))
+	html, meta, err := r.Render([]byte(src), "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := strings.Join(meta.Links, "|"); got != "Prop Note|Second|Other note.md|img/a.png|Wiki" {
+	if got := strings.Join(meta.Links, "|"); got != "Prop Note|Second|Other note.md|../img/a.png|Wiki" {
 		t.Errorf("links = %q", got)
 	}
 	for _, want := range []string{
@@ -101,7 +101,7 @@ func TestEveryKindOfLinkIsRecorded(t *testing.T) {
 func TestHeadingsFold(t *testing.T) {
 	src := "intro\n\n# One\n\na\n\n## One-A\n\nb[^n]\n\n### Deep\n\nc\n\n## One-B\n\nd\n\n# Two\n\n" +
 		"> ## quoted heading\n\n```mermaid\ngraph TD; A-->B;\n```\n\n[^n]: note\n"
-	html, _, err := New(fakeLinks{}, "/-/tag/").Render([]byte(src))
+	html, _, err := New(fakeLinks{}, "/-/tag/").Render([]byte(src), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestHeadingsFold(t *testing.T) {
 func TestMissingTargetsAreStillLinks(t *testing.T) {
 	r := New(fakeLinks{}, "/-/tag/")
 	src := []byte("![[gone.png|200]] ![alt](img/gone.png) [[Gone Note]] <b>&\"</b> [[a\"b]]")
-	html, meta, err := r.Render(src)
+	html, meta, err := r.Render(src, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -178,9 +178,45 @@ func TestEmbeds(t *testing.T) {
 		"![[Unexported.excalidraw]]": `<p><a class="drawing-unexported" href="/Unexported.excalidraw" title="` + DrawingHelp +
 			`">Unexported.excalidraw</a></p>`,
 	} {
-		html, _, err := r.Render([]byte(src))
+		html, _, err := r.Render([]byte(src), "")
 		if got := strings.TrimSpace(string(html)); err != nil || got != want {
 			t.Errorf("%s\n got: %s\nwant: %s (err %v)", src, got, want, err)
 		}
+	}
+}
+
+// The resolver is asked from where the link stands, for every kind of link.
+type recordingLinks struct{ asked *[]string }
+
+func (r recordingLinks) ResolveLink(from, target string) (string, bool) {
+	*r.asked = append(*r.asked, from+" -> "+target)
+	return "/found", true
+}
+func (r recordingLinks) ResolveEmbed(from, target string) Embed {
+	*r.asked = append(*r.asked, from+" => "+target)
+	return Embed{Image: "/found.png"}
+}
+
+func TestLinksAreResolvedFromTheLinkingNote(t *testing.T) {
+	var asked []string
+	r := New(recordingLinks{&asked}, "/-/tag/")
+	html, _, err := r.Render([]byte("[[Name]] [[../up/Name|label]] ![[pic.png]] [md](./x.md) ![img](/abs/y.png)"), "area/Page.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "area/Page.md -> Name | area/Page.md -> ../up/Name | area/Page.md -> pic.png | area/Page.md => pic.png | " +
+		"area/Page.md -> ./x.md | area/Page.md -> /abs/y.png"
+	if got := strings.Join(asked, " | "); got != want {
+		t.Errorf("asked:\n got: %s\nwant: %s", got, want)
+	}
+	for _, want := range []string{`<a href="/found">Name</a>`, `<a href="/found">label</a>`, `<img src="/found.png">`, `<a href="/found">md</a>`, `<img src="/found" alt="img">`} {
+		if !strings.Contains(string(html), want) {
+			t.Errorf("output lacks %q\n%s", want, html)
+		}
+	}
+	// The index parses without a note at hand, and must not resolve anything.
+	asked = nil
+	if r.Meta([]byte("[[Name]]")); len(asked) != 0 {
+		t.Errorf("Meta resolved links: %v", asked)
 	}
 }

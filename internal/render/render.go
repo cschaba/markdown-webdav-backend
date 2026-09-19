@@ -28,13 +28,15 @@ import (
 	"go.abhg.dev/goldmark/wikilink"
 )
 
-// LinkResolver maps a wikilink target such as "Note" or "img/photo.png" to
-// the URL path of the file it means. The index implements it.
+// LinkResolver maps a link target such as "Note", "../img/photo.png" or
+// "/folder/Note" to the URL path of the file it means. What a target means
+// depends on where the link stands, so from names the linking note (its vault
+// path). The index implements it.
 type LinkResolver interface {
-	ResolveLink(target string) (urlPath string, ok bool)
+	ResolveLink(from, target string) (urlPath string, ok bool)
 	// ResolveEmbed says what to show for ![[target]]. It is only asked
 	// about targets that ResolveLink found.
-	ResolveEmbed(target string) Embed
+	ResolveEmbed(from, target string) Embed
 }
 
 // Embed is what stands in for an embedded file. With no Image the embed is
@@ -72,7 +74,7 @@ func New(links LinkResolver, tagURL string) *Renderer {
 			extension.GFM,
 			extension.Footnote,
 			&frontmatter.Extender{},
-			linkExtender{links},
+			linkExtender{},
 			&hashtag.Extender{Variant: hashtag.ObsidianVariant, Resolver: tagResolver{tagURL}},
 			// Client-side: server-side rendering would need a headless
 			// browser in the image.
@@ -88,9 +90,10 @@ func New(links LinkResolver, tagURL string) *Renderer {
 	)}
 }
 
-// Render returns the HTML of a note together with its metadata.
-func (r *Renderer) Render(src []byte) (template.HTML, Meta, error) {
-	doc, meta := r.parse(src, true)
+// Render returns the HTML of a note together with its metadata. from is the
+// note's vault path: its links are resolved from where it stands.
+func (r *Renderer) Render(src []byte, from string) (template.HTML, Meta, error) {
+	doc, meta := r.parse(src, from, true)
 	var buf bytes.Buffer
 	if err := r.md.Renderer().Render(&buf, src, doc); err != nil {
 		return "", meta, err
@@ -100,7 +103,7 @@ func (r *Renderer) Render(src []byte) (template.HTML, Meta, error) {
 
 // Meta parses a note without rendering it.
 func (r *Renderer) Meta(src []byte) Meta {
-	_, meta := r.parse(src, false)
+	_, meta := r.parse(src, "", false)
 	return meta
 }
 
@@ -108,7 +111,7 @@ func (r *Renderer) Meta(src []byte) Meta {
 // vault: Markdown links get their real URL, and whatever has no file behind it
 // becomes a missing marker. The index skips that, since it only needs Meta, and
 // while it is being built there is nothing to resolve against yet.
-func (r *Renderer) parse(src []byte, forRender bool) (ast.Node, Meta) {
+func (r *Renderer) parse(src []byte, from string, forRender bool) (ast.Node, Meta) {
 	ctx := parser.NewContext()
 	doc := r.md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 
@@ -130,14 +133,15 @@ func (r *Renderer) parse(src []byte, forRender bool) (ast.Node, Meta) {
 			return ast.WalkContinue, nil
 		}
 		var target string
-		var dest *[]byte // set for Markdown links, whose URL gets rewritten
+		var dest *[]byte        // set for Markdown links, whose URL gets rewritten
+		var wiki *wikilink.Node // set for wikilinks, which carry their URL to the renderer
 		embed := false
 		switch n := n.(type) {
 		case *hashtag.Node:
 			tags[normalizeTag(string(n.Tag))] = true
 			return ast.WalkContinue, nil
 		case *wikilink.Node:
-			target, embed = string(n.Target), n.Embed
+			target, embed, wiki = string(n.Target), n.Embed, n
 		case *ast.Link:
 			target, dest = internalTarget(string(n.Destination)), &n.Destination
 		case *ast.Image:
@@ -150,13 +154,21 @@ func (r *Renderer) parse(src []byte, forRender bool) (ast.Node, Meta) {
 		if !forRender {
 			return ast.WalkContinue, nil
 		}
-		urlPath, ok := r.links.ResolveLink(target)
+		urlPath, ok := r.links.ResolveLink(from, target)
 		switch {
 		case !ok:
 			unresolved = append(unresolved, func() { markMissing(n, src, target, embed) })
+		case wiki != nil:
+			// Resolved here, not in the node renderer: only here is it known
+			// which note the link stands in.
+			resolved := resolvedLink{url: urlPath}
+			if embed {
+				resolved.embed = r.links.ResolveEmbed(from, target)
+			}
+			wiki.SetAttribute(resolvedAttr, resolved)
 		case dest != nil:
-			// Left alone, the browser would resolve "Note.md" against the
-			// linking note's folder; Obsidian finds it wherever it lives.
+			// The browser would resolve "Note.md" against the linking note's
+			// URL, which works for a file next to it and for nothing else.
 			if _, fragment, _ := strings.Cut(string(*dest), "#"); fragment != "" {
 				if decoded, err := url.PathUnescape(fragment); err == nil {
 					fragment = decoded
@@ -208,21 +220,19 @@ func propertyLinks(v any, out []string) []string {
 	return out
 }
 
-// internalTarget returns the vault file a Markdown link destination such as
-// "Other%20note.md#heading" or "../img/a.png" points at, or "" for anything
-// that leaves the vault (a URL with a scheme, a bare fragment).
+// internalTarget returns the target a Markdown link destination such as
+// "Other%20note.md#heading", "../img/a.png" or "/folder/x.md" names, decoded
+// but otherwise as written, or "" for anything that leaves the vault (a URL
+// with a scheme, a bare fragment).
 func internalTarget(dest string) string {
 	u, err := url.Parse(dest)
 	if err != nil || u.Scheme != "" || u.Host != "" || u.Path == "" {
 		return ""
 	}
-	// Obsidian resolves these like wikilinks, by name rather than relative
-	// to the linking note, so leading "./" and "../" carry no meaning.
-	target := strings.TrimPrefix(path.Clean("/"+u.Path), "/")
-	if strings.HasPrefix(target, "-/") {
+	if strings.HasPrefix(strings.TrimPrefix(path.Clean("/"+u.Path), "/"), "-/") {
 		return "" // one of the server's own pages, such as -/search?q=...
 	}
-	return target
+	return u.Path // "./" and "../" mean something: the resolver follows them
 }
 
 // stringList accepts the shapes Obsidian allows for list properties:

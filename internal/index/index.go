@@ -173,25 +173,81 @@ func (idx *Index) load(rel string) *Note {
 // ResolveLink implements render.LinkResolver with Obsidian's rules: a link
 // names a file by base name or by a trailing part of its path, and ".md" is
 // optional. Among several matches the shortest path wins.
-func (idx *Index) ResolveLink(target string) (string, bool) {
-	p, ok := idx.Resolve(target)
+func (idx *Index) ResolveLink(from, target string) (string, bool) {
+	p, ok := idx.Resolve(from, target)
 	if !ok {
 		return "", false
 	}
 	return idx.URL(p), true
 }
 
-// Resolve returns the vault path a link target means.
-func (idx *Index) Resolve(target string) (string, bool) {
-	target = strings.ToLower(strings.Trim(strings.TrimSpace(target), "/"))
-	if target == "" {
-		return "", false
+// Resolve returns the vault path that target means in the note at from (a
+// vault path; "" stands for a note in the root). The same rules serve
+// [[wikilinks]], ![[embeds]] and Markdown links. Case never matters, and ".md"
+// may be left out.
+//
+//	[[Name]]         next to the linking note first, then anywhere in the
+//	                 vault, the shortest path winning (Obsidian's rule)
+//	[[sub/Name]]     relative to the linking note, then from the vault root,
+//	                 then any file whose path ends like that (Obsidian writes
+//	                 such links, as short as is still unambiguous)
+//	[[./x]] [[../x]] relative to the linking note, and nothing else
+//	[[/folder/x]]    from the vault root, and nothing else
+//
+// A path that says where to look is followed strictly: if nothing is there,
+// the link is missing, rather than quietly pointing at a namesake elsewhere.
+func (idx *Index) Resolve(from, target string) (string, bool) {
+	target = strings.ToLower(strings.TrimSpace(target))
+	dir := strings.ToLower(path.Dir(from))
+	if dir == "." {
+		dir = ""
 	}
 	idx.mu.RLock()
 	defer idx.mu.RUnlock()
-	// Note names may contain dots ("v1.2 plan"), so an extension proves
-	// nothing: try the note first, then the literal file.
-	for _, candidate := range []string{target + ".md", target} {
+	switch {
+	case strings.Trim(target, "/") == "":
+		return "", false
+	case strings.HasPrefix(target, "/"):
+		return idx.exact(path.Clean(target)[1:])
+	case target == "." || target == ".." || strings.HasPrefix(target, "./") || strings.HasPrefix(target, "../"):
+		joined := path.Join(dir, target)
+		if joined == ".." || strings.HasPrefix(joined, "../") {
+			return "", false // above the vault
+		}
+		return idx.exact(joined)
+	}
+	target = path.Clean(target)
+	if p, ok := idx.exact(path.Join(dir, target)); ok {
+		return p, true
+	}
+	if strings.Contains(target, "/") && dir != "" {
+		if p, ok := idx.exact(target); ok {
+			return p, true
+		}
+	}
+	return idx.anywhere(target)
+}
+
+// candidates: note names may contain dots ("v1.2 plan"), so an extension
+// proves nothing. Try the note first, then the literal file.
+func candidates(target string) []string { return []string{target + ".md", target} }
+
+// exact finds the file at a lowercased vault path. The caller holds the lock.
+func (idx *Index) exact(target string) (string, bool) {
+	for _, candidate := range candidates(target) {
+		for _, p := range idx.byName[path.Base(candidate)] {
+			if strings.ToLower(p) == candidate {
+				return p, true
+			}
+		}
+	}
+	return "", false
+}
+
+// anywhere finds a file by name or by the end of its path, the shortest path
+// winning. The caller holds the lock.
+func (idx *Index) anywhere(target string) (string, bool) {
+	for _, candidate := range candidates(target) {
 		var matches []string
 		for _, p := range idx.byName[path.Base(candidate)] {
 			lower := strings.ToLower(p)
@@ -232,7 +288,7 @@ func (idx *Index) Backlinks(rel string) []*Note {
 	var out []*Note
 	for _, note := range candidates {
 		for _, link := range note.Links {
-			if p, ok := idx.Resolve(link); ok && p == rel {
+			if p, ok := idx.Resolve(note.Path, link); ok && p == rel {
 				out = append(out, note)
 				break
 			}
