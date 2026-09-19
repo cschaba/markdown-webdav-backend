@@ -135,6 +135,12 @@ await send("Emulation.setEmulatedMedia", { media: "" });
 await open("/test/-/slides?path=12%20Slides.md#4");
 
 console.log("--- help, and leaving");
+// a character that is no key of the slide show is kept from the browser's find
+// bar, and so is the first g of gg
+await js(`window.__prevented = {}; addEventListener("keydown", e => { __prevented[e.key] = e.defaultPrevented; })`);
+const beforeStray = await current();
+await press("x"); await press("/"); await press("g"); await sleep(1300);
+check("a key that is not handled does nothing, and the browser does not get it", await js(`__prevented.x === true && __prevented["/"] === true && __prevented.g === true`) && await current() === beforeStray, await js(`JSON.stringify(__prevented)`));
 await press("?"); await sleep(200);
 const help = JSON.parse(await js(`JSON.stringify({ open: document.getElementById("deck-help").open, rows: document.querySelectorAll("#deck-help tr").length })`));
 check("? lists the keys, in a dialog", help.open && help.rows >= 10, JSON.stringify(help));
@@ -167,8 +173,10 @@ check("Esc leaves as well", await js("location.pathname") === "/test/12%20Slides
 console.log("--- letter keys switched off");
 await js(`localStorage.setItem("keys-off", "1")`);
 await open("/test/-/slides?path=12%20Slides.md");
+await js(`window.__prevented = {}; addEventListener("keydown", e => { __prevented[e.key] = e.defaultPrevented; })`);
 await press("l"); await press("j"); await press("G");
 check("off: the letters do nothing", await current() === 1, await current());
+check("off: and are the browser's again", await js(`__prevented.l === false && __prevented.G === false`), await js(`JSON.stringify(__prevented)`));
 await press("ArrowRight"); await press(" ");
 check("off: arrows and Space still work", await current() === 3, await current());
 await js(`localStorage.removeItem("keys-off")`);
