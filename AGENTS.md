@@ -79,6 +79,14 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
   which note it is rendering; the result travels on the node. what has no file behind it is replaced by a `missing` node
   and shows as a dashed "missing" marker, never as a dead link or a
   broken-image icon. A missing target still goes into `Meta.Links`.
+- Note embeds (`internal/render/embed.go`): `![[Note]]` renders the other note
+  with the same renderer, *from the other note's path*, and puts the HTML into
+  the host's tree in place of the wikilink. **One level deep, by the owner's
+  decision** — do not add recursion; it is also what makes loops impossible.
+  The embedded tree is changed before rendering (`prepareEmbedded`): heading
+  ids and the Mermaid script come off, and the host adds the script once.
+  Anything new that a rendered note brings with an id or a script needs the
+  same treatment.
 - Heading anchors (`internal/render/headings.go`): `Slug` is the *only* place
   that turns a heading into an id. The parser gets it for the headings, links
   apply it to their fragment. goldmark's default ids drop every non-ASCII

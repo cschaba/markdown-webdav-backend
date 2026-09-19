@@ -19,6 +19,7 @@ page cannot be reached from here by following links.
 | [[06 Search]] | the search box: ranking, phrases, `tag:`, `path:` and the task operators; brings three helper notes in `search/` |
 | [[07 Links]] | where a link leads: a name, a relative path, `./` and `../`, a path from the root — for notes, images and Markdown links |
 | [[08 Aliases and headings]] | `[[note\|alias]]` and `[[note#heading]]`: umlauts, repeated headings, heading paths, block references, headings that are missing |
+| [[09 Embedded notes]] | `![[Note]]` and `![[Note#Heading]]` shown in place: links inside the embed, sections, diagrams, one level deep, what stays a link |
 | [[v1.2 plan]] | a dot in a note name, broken front matter |
 | this page | front matter, tags, every way to write a link |
 
