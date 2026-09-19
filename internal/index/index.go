@@ -4,6 +4,7 @@
 package index
 
 import (
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -32,6 +33,9 @@ const TagPath = "/-/tag/"
 
 type Index struct {
 	root     string
+	openRoot sync.Once
+	confined *os.Root // root, opened; see file
+	rootErr  error
 	prefix   string // URL prefix of the vault in the web view, e.g. "/notes"
 	renderer *render.Renderer
 
@@ -47,6 +51,28 @@ func New(root, urlPrefix string) *Index {
 	// notes through the renderer.
 	idx.renderer = render.New(idx, urlPrefix+TagPath)
 	return idx
+}
+
+// file opens a file of the vault, and nothing else: through os.Root a symbolic
+// link that leads out of the vault is not followed. The index feeds search
+// excerpts and note embeds, so a link to a file outside would otherwise be a
+// way to read it in the web view.
+func (idx *Index) file(vaultPath string) (*os.File, error) {
+	idx.openRoot.Do(func() { idx.confined, idx.rootErr = os.OpenRoot(idx.root) })
+	if idx.rootErr != nil {
+		return nil, idx.rootErr
+	}
+	return idx.confined.Open(filepath.FromSlash(vaultPath))
+}
+
+// readFile reads a file of the vault, see file.
+func (idx *Index) readFile(vaultPath string) ([]byte, error) {
+	f, err := idx.file(vaultPath)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return io.ReadAll(f)
 }
 
 // URL maps a vault path to its URL; notes drop the ".md". Every URL into a
@@ -111,7 +137,10 @@ func (idx *Index) Update(rel string) {
 		return
 	}
 	note := idx.load(rel)
-	_, statErr := os.Stat(filepath.Join(idx.root, filepath.FromSlash(rel)))
+	f, statErr := idx.file(rel)
+	if statErr == nil {
+		f.Close()
+	}
 
 	idx.mu.Lock()
 	defer idx.mu.Unlock()
@@ -148,12 +177,16 @@ func (idx *Index) load(rel string) *Note {
 	if !strings.EqualFold(path.Ext(rel), ".md") {
 		return nil
 	}
-	full := filepath.Join(idx.root, filepath.FromSlash(rel))
-	info, err := os.Stat(full)
+	f, err := idx.file(rel)
+	if err != nil {
+		return nil
+	}
+	defer f.Close()
+	info, err := f.Stat()
 	if err != nil || info.IsDir() {
 		return nil
 	}
-	src, err := os.ReadFile(full)
+	src, err := io.ReadAll(f)
 	if err != nil {
 		return nil
 	}

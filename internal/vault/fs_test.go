@@ -13,10 +13,14 @@ func TestGitIsInvisibleAndChangesAreReported(t *testing.T) {
 	os.WriteFile(filepath.Join(root, ".git", "HEAD"), []byte("ref"), 0o644)
 
 	var changes []Change
-	fs := New(root, func(c Change) { changes = append(changes, c) })
+	fs, err := New(root, func(c Change) { changes = append(changes, c) })
+	if err != nil {
+		t.Fatal(err)
+	}
 	ctx := context.Background()
 
-	for _, name := range []string{"/.git", "/.git/HEAD", "/sub/../.git/HEAD"} {
+	// also as a file system that ignores case or trailing dots would see it
+	for _, name := range []string{"/.git", "/.git/HEAD", "/sub/../.git/HEAD", "/.GIT/HEAD", "/.git./HEAD", "/.git /HEAD"} {
 		if _, err := fs.Stat(ctx, name); !os.IsNotExist(err) {
 			t.Errorf("Stat(%q) err = %v, want not exist", name, err)
 		}
@@ -55,5 +59,44 @@ func TestGitIsInvisibleAndChangesAreReported(t *testing.T) {
 	}
 	if len(changes) != 1 {
 		t.Errorf("reading reported a change: %+v", changes)
+	}
+}
+
+// A symbolic link in the vault that leads out of it is no way out: a sync
+// client can neither read nor write what it points at.
+func TestSymlinksDoNotLeaveTheVault(t *testing.T) {
+	outside, root := t.TempDir(), t.TempDir()
+	os.WriteFile(filepath.Join(outside, "secret.txt"), []byte("secret"), 0o644)
+	if err := os.Symlink(outside, filepath.Join(root, "out")); err != nil {
+		t.Skip("no symbolic links here:", err)
+	}
+	os.Symlink(filepath.Join(outside, "secret.txt"), filepath.Join(root, "leak.txt"))
+	fs, err := New(root, func(Change) {})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := context.Background()
+	for _, name := range []string{"/out/secret.txt", "/leak.txt"} {
+		if f, err := fs.OpenFile(ctx, name, os.O_RDONLY, 0); err == nil {
+			f.Close()
+			t.Errorf("%s can be read", name)
+		}
+		if f, err := fs.OpenFile(ctx, name, os.O_WRONLY|os.O_TRUNC, 0o644); err == nil {
+			f.Close()
+			t.Errorf("%s can be written", name)
+		}
+	}
+	if f, err := fs.OpenFile(ctx, "/out/new.txt", os.O_WRONLY|os.O_CREATE, 0o644); err == nil {
+		f.Close()
+		t.Error("a file can be created outside the vault")
+	}
+	if err := fs.RemoveAll(ctx, "/out/secret.txt"); err == nil {
+		t.Error("a file outside the vault can be removed")
+	}
+	if content, _ := os.ReadFile(filepath.Join(outside, "secret.txt")); string(content) != "secret" {
+		t.Errorf("the file outside is now %q", content)
+	}
+	if err := fs.RemoveAll(ctx, "/"); err == nil {
+		t.Error("the vault itself can be removed")
 	}
 }
