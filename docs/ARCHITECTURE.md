@@ -127,6 +127,18 @@ search in a real vault disproved: three notes with the word in title, tag and
 text showed 100%. Making the best hit 100% was the alternative; it
 would call the top result of a hopeless search a perfect match.
 
+**The search history is a cookie.** Without a database the server has nowhere
+to keep it, and should not grow a place for the sake of eight strings. The
+server reads and writes the cookie itself (HttpOnly, no script), scoped to the
+vault's path. The price: it is per browser. Only searches that found something
+are kept, so a typo does not push a useful entry out. Clearing is a POST,
+because a link would be followed by a prefetching browser.
+
+The list under the search box is our own, not a `<datalist>`. That was the
+first version: the browser filters it by what is typed, shows it only in some
+situations, and draws it differently everywhere. The replacement is a list
+inside the form, opened by `:focus-within`, still without script.
+
 Ranking is by where a term occurs, not how often: title, tag, property, heading,
 path, text, with text hits capped. Property values come from the front matter
 the index has parsed anyway; keys are not searched, since "created" or "source"

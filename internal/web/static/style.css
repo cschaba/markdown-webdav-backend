@@ -21,16 +21,55 @@ header {
 header { flex-wrap: wrap; align-items: center; }
 header nav:not(.crumbs) { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; }
 header nav:not(.crumbs) a + a { margin-left: 0; }
+/* The magnifier is the field's label: a click on it focuses the field, which
+   opens the recent searches - as in Apple's search fields, chevron included.
+   A label rather than a button because Safari does not focus a clicked
+   button, and focus is what opens the list. */
+header .search label {
+  position: absolute; left: 7px; top: 50%; transform: translateY(-50%);
+  display: flex; color: var(--muted); cursor: pointer;
+}
+header .search label svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+header .search label:hover, header .search:focus-within label { color: var(--fg); }
 header .search input {
-  width: 11rem; padding: 3px 8px; font: inherit; color: var(--fg);
+  width: 12.5rem; padding: 3px 8px 3px 35px; font: inherit; color: var(--fg);
   background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
 }
+/* Recent searches, under the search box while it has focus. No script: the
+   list is inside the form, and :focus-within keeps it open from the box to
+   the links. :hover as well, because Safari does not focus a link that is
+   clicked, so the list would vanish between mouse-down and the click. */
+header .search { position: relative; }
+.search-history {
+  display: none; position: absolute; z-index: 10; top: calc(100% + 4px); left: 0;
+  min-width: 100%; max-width: min(22rem, 90vw); margin: 0; padding: 4px 0; list-style: none;
+  /* six and a half rows: the cut-off row says there is more to scroll to */
+  max-height: 12.2rem; overflow-y: auto; overscroll-behavior: contain;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+.search:focus-within .search-history, .search-history:hover { display: block; }
+.search-history a {
+  display: block; padding: 5px 12px; color: var(--fg);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.search-history a:hover, .search-history a:focus { background: var(--soft); text-decoration: none; outline: none; }
 .results li { padding: 8px 0; }
 .results .match {
   float: right; margin-left: 12px; color: var(--muted); font-size: 0.85rem;
   font-variant-numeric: tabular-nums; cursor: help;
 }
 .snippet { margin: 2px 0 0; color: var(--muted); font-size: 0.9rem; overflow-wrap: anywhere; }
+.history { margin-top: 2.5rem; }
+.history h2 { font-size: 1rem; margin-bottom: 8px; }
+.history ul { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; padding: 0; list-style: none; }
+.history li a { display: block; padding: 2px 10px; font-size: 0.9rem; border: 1px solid var(--line); border-radius: 999px; }
+.history li a:hover { background: var(--soft); text-decoration: none; }
+.history button {
+  padding: 3px 10px; font: inherit; font-size: 0.85rem; color: var(--fg); cursor: pointer;
+  background: var(--soft); border: 1px solid var(--line); border-radius: 6px;
+}
+.history .empty { margin: 8px 0 0; font-size: 0.8rem; }
 details.help { margin-top: 2rem; font-size: 0.9rem; }
 details.help summary { cursor: pointer; color: var(--muted); }
 header .switch { padding-left: 12px; border-left: 1px solid var(--line); }

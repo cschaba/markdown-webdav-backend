@@ -1,13 +1,21 @@
 {{template "head" .}}
 <h1>Search</h1>
 {{with .Body}}{{if .Query}}
-<p class="empty">{{len .Results}} {{if eq (len .Results) 1}}result{{else}}results{{end}} for “{{.Query}}”, best match first.</p>
+<p class="empty">{{len .Results}} {{if eq (len .Results) 1}}result{{else}}results{{end}} for “{{.Query}}”, best match first. <a href="{{.SearchURL}}">Clear search</a></p>
 <ul class="list results">
 {{range .Results}}<li>{{with .Percent}}<span class="match" title="How well this matches. 100% is as good as a note named exactly what you searched for.">{{.}}%</span>{{end}}<a href="{{.URL}}">{{.Title}}</a> <small>{{.Path}}{{if .Attachment}} · attachment{{end}}</small>
 {{range .Snippets}}<p class="snippet">{{.}}</p>
 {{end}}</li>
 {{end}}</ul>
 {{end}}{{end}}
+{{with .Body}}{{if .History}}<section class="history">
+<h2>Recent searches</h2>
+<ul>
+{{range .History}}<li><a href="{{$.Body.SearchURL}}?q={{.}}">{{.}}</a></li>
+{{end}}</ul>
+<form method="post" action="{{.SearchURL}}/clear"><button type="submit">Clear history</button></form>
+<p class="empty">Kept in a cookie in this browser, for this vault: the last {{len .History}} searches that found something.</p>
+</section>{{end}}{{end}}
 <details class="help"{{if not .Body.Results}} open{{end}}>
 <summary>How to search</summary>
 <table class="properties">

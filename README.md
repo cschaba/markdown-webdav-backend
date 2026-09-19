@@ -33,6 +33,7 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Obsidian "Bases" (`.base` files) | not started |
 | Callouts, note embeds (`![[Note]]`), `==highlight==`, `%%comments%%` | not started |
 | Search | works: words, phrases, `tag:` and `path:`, ranked by how well a note matches |
+| Search history | works: the last 10 searches, in a cookie, with a way to clear them |
 | Live results while typing, highlighted matches, history view in the browser | not started |
 | Logseq | untested |
 
@@ -127,6 +128,14 @@ Of the properties (front matter) the values are searched — an author, a
 description, a date as written — but not their names, which are the same in
 every note. Excalidraw drawings are not searched; a drawing is found through the
 notes that embed it.
+
+The last ten searches that found something are remembered. Click into the
+search box, or on its magnifier, and they drop down below it, latest on top;
+the list scrolls when it is longer than fits. They are also listed on the search
+page, where *Clear history* forgets them. They are kept in a cookie, so per
+browser and per vault — the phone does not know what the laptop searched for —
+and nothing is stored on the server. *Clear search* on a result list empties
+the current search.
 
 ## Graph view
 
