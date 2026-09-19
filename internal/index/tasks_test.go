@@ -120,3 +120,10 @@ func TestSearchTaskResults(t *testing.T) {
 		t.Errorf("mixed query: %+v", mixed)
 	}
 }
+
+func TestCountTasks(t *testing.T) {
+	src := "---\ntodo: \"- [ ] not a task\"\n---\n- [ ] open\n- [x] done\n> - [-] cancelled counts as done\n```\n- [ ] an example\n```\n1. [ ] numbered\n- [] no task\n"
+	if open, done := CountTasks(src); open != 2 || done != 2 {
+		t.Errorf("open, done = %d, %d, want 2, 2", open, done)
+	}
+}

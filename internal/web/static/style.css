@@ -178,6 +178,12 @@ footer a, footer button, footer .about { color: var(--muted); }
 footer .about { margin-right: auto; }
 footer button { padding: 0; font: inherit; background: none; border: 0; cursor: pointer; }
 footer button:hover { text-decoration: underline; }
+footer button[aria-expanded="true"] { color: var(--fg); }
+/* A note's statistics: small tiles under the title, wrapping on a phone. */
+.note-stats dl { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: 8px; margin: 0 0 1.25rem; }
+.note-stats div { padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; }
+.note-stats dt { color: var(--muted); font-size: 0.75rem; }
+.note-stats dd { margin: 0; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
 
 /* ---- Keyboard ---------------------------------------------------------- */
 /* What has the focus must be seen: it is the cursor of the keyboard. */
@@ -277,7 +283,7 @@ html.export body { max-width: none; padding: 0 0 48px; background: #e9eaec; font
   :root { --fg: #111; --muted: #555; --bg: #fff; --soft: #f6f6f6; --line: #ccc; --link: #111; color-scheme: light; }
   body, html.export body { max-width: none; margin: 0; padding: 0; background: #fff; }
   /* the site's furniture: navigation, search, backlinks, the export bar */
-  header, footer, aside, dialog, .skip, .key-hints, .key-pending, .warning, .export-bar, .tags, .properties, details.help, .history { display: none !important; }
+  header, footer, aside, dialog, .note-stats, .skip, .key-hints, .key-pending, .warning, .export-bar, .tags, .properties, details.help, .history { display: none !important; }
   .paper { width: auto !important; margin: 0; padding: 0 !important; box-shadow: none; }
   .paper .page-break, .page-break { break-after: page; height: 0; margin: 0; border: 0; }
   .page-break::after, .paper .page-break::after { content: none; }

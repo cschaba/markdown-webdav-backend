@@ -19,7 +19,7 @@
 {{end}}
 
 {{define "foot"}}</main>
-<footer>{{with .Version}}{{if $.AboutURL}}<a class="about" href="{{$.AboutURL}}">markdown-webdav-backend {{.}}</a>{{else}}<span class="about">markdown-webdav-backend {{.}}</span>{{end}}{{end}}{{with .SlidesURL}}<a href="{{.}}">Slide show</a>{{end}}{{with .ExportURL}}<a href="{{.}}">Export to PDF</a>{{end}}<button type="button" id="keys-button" hidden>Keyboard shortcuts <kbd>?</kbd></button></footer>
+<footer>{{with .Version}}{{if $.AboutURL}}<a class="about" href="{{$.AboutURL}}">markdown-webdav-backend {{.}}</a>{{else}}<span class="about">markdown-webdav-backend {{.}}</span>{{end}}{{end}}{{with .SlidesURL}}<a href="{{.}}">Slide show</a>{{end}}{{with .ExportURL}}<a href="{{.}}">Export to PDF</a>{{end}}{{if .Stats}}<button type="button" id="stats-button" aria-controls="note-stats" aria-expanded="false" hidden>Statistics <kbd>i</kbd></button>{{end}}<button type="button" id="keys-button" hidden>Keyboard shortcuts <kbd>?</kbd></button></footer>
 <dialog id="keys-help" aria-labelledby="keys-title">
 <form method="dialog"><h2 id="keys-title">Keyboard shortcuts</h2><button aria-label="Close">×</button></form>
 <label class="keys-switch"><input type="checkbox" id="keys-enabled" checked> Single-key shortcuts are on</label>

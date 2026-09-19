@@ -13,6 +13,9 @@ change flags, URLs or behaviour.
   with a link to the source on GitHub and the vault's statistics: notes,
   drawings, attachments, folders, tags, links and missing links, size and last
   change. The keyboard shortcuts help links to it too.
+- A note's statistics - words, characters, reading time, headings, links,
+  backlinks, tasks, size, last change - shown and hidden with `i` or
+  *Statistics* at the foot of the note.
 
 ## [0.1.0] - 2026-09-19
 

@@ -1,6 +1,9 @@
 {{template "head" .}}
 <article>
 <h1 class="title">{{.Title}}</h1>
+<section id="note-stats" class="note-stats" aria-label="Statistics of this note" hidden><dl>
+{{range .Body.Stats}}<div><dt>{{.Name}}</dt><dd>{{.Value}}</dd></div>
+{{end}}</dl></section>
 {{with .Body.Tags}}<p class="tags">{{range .}}<a href="{{.URL}}">#{{.Tag}}</a> {{end}}</p>{{end}}
 {{with .Body.Properties}}<table class="properties">
 {{range .}}<tr><th>{{.Key}}</th><td>{{.Value}}</td></tr>

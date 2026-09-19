@@ -21,7 +21,7 @@ page cannot be reached from here by following links.
 | [[08 Aliases and headings]] | `[[note\|alias]]` and `[[note#heading]]`: umlauts, repeated headings, heading paths, block references, headings that are missing |
 | [[09 Embedded notes]] | `![[Note]]` and `![[Note#Heading]]` shown in place: links inside the embed, sections, diagrams, one level deep, what stays a link |
 | [[10 Printing]] | printing and *Export to PDF*: paper layout, page size, sub pages, intentional page breaks |
-| [[11 Keyboard]] | the keys: scrolling, headings and folds, link hints, lists, the help, switching them off |
+| [[11 Keyboard]] | the keys: scrolling, headings and folds, link hints, lists, the help, switching them off, a note's statistics |
 | [[12 Slides]] | a note as a slide show, separated the Obsidian way: keys, mouse and touch, shrink to fit, and the PDF export's slide format |
 | [[v1.2 plan]] | a dot in a note name, broken front matter |
 | this page | front matter, tags, every way to write a link |

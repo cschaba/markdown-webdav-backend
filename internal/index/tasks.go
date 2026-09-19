@@ -116,3 +116,24 @@ func parseTask(line string) (done bool, text string, ok bool) {
 	}
 	return line[1:end] != " ", strings.TrimSpace(line[end+1:]), true
 }
+
+// CountTasks counts the tasks of a note by the rules the task search uses, so
+// the numbers agree with what task-todo:"" and task-done:"" find in it.
+func CountTasks(src string) (open, done int) {
+	fenced := false
+	for _, line := range strings.Split(body(src), "\n") {
+		trimmed := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+			fenced = !fenced
+			continue
+		}
+		if isDone, _, ok := parseTask(trimmed); ok && !fenced {
+			if isDone {
+				done++
+			} else {
+				open++
+			}
+		}
+	}
+	return open, done
+}
