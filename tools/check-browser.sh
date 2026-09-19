@@ -33,8 +33,17 @@ done
 
 work=$(mktemp -d)
 server='' browser=''
+# stop ends a process and waits for it, but not forever: a browser that is
+# still starting may not answer TERM, and a bare wait for it hung a release
+# for half an hour.
+stop() {
+    kill "$1" 2>/dev/null || return 0
+    for _ in $(seq 1 50); do kill -0 "$1" 2>/dev/null || break; sleep 0.1; done
+    kill -KILL "$1" 2>/dev/null || true
+    wait "$1" 2>/dev/null || true
+}
 cleanup() {
-    [[ -z $browser ]] || kill "$browser" 2>/dev/null || true
+    [[ -z $browser ]] || stop "$browser"
     [[ -z $server ]] || kill "$server" 2>/dev/null || true
     sleep 0.5 # the browser's children are still writing their profile
     rm -rf "$work" 2>/dev/null || true
@@ -56,8 +65,7 @@ for name in "${checks[@]}"; do
     "$chrome" --headless=new --no-sandbox --remote-debugging-port=$debug --user-data-dir="$work/profile-$name" about:blank >"$work/browser-$name.log" 2>&1 &
     browser=$!
     node "tools/check-$name.mjs" "$debug" "http://127.0.0.1:$port" "$work" || failed+=("$name")
-    kill "$browser" 2>/dev/null || true
-    wait "$browser" 2>/dev/null || true
+    stop "$browser"
     browser=''
 done
 

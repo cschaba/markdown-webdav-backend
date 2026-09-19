@@ -17,6 +17,7 @@ jobs:
     name: Build, test the archives, publish
     needs: checks
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write # to create the release
     steps:
