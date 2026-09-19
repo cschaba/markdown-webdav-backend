@@ -32,7 +32,8 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Excalidraw drawings | works through the plugin's exported picture, see below |
 | Obsidian "Bases" (`.base` files) | not started |
 | Callouts, note embeds (`![[Note]]`), `==highlight==`, `%%comments%%` | not started |
-| Search, history view in the browser | not started |
+| Search | works: words, phrases, `tag:` and `path:`, ranked by how well a note matches |
+| Live results while typing, highlighted matches, history view in the browser | not started |
 | Logseq | untested |
 
 ## Run it
@@ -99,6 +100,33 @@ route is the community plugin **Remotely Save**, which syncs a local vault with 
 WebDAV server on every platform: point it at `https://your-host/dav/<vault>/`
 with the login above. On a desktop the endpoint can also simply be mounted (Finder, GNOME
 Files, `rclone`, `davfs2`).
+
+## Search
+
+The box in the header searches the current vault.
+
+| Query | Finds |
+|---|---|
+| `garden plan` | notes containing both words, in title, tags, properties, headings or text |
+| `"garden plan"` | the exact phrase |
+| `tag:project` | only notes with that tag, or one nested below it |
+| `path:daily/` | only notes whose folder or file name contains that text |
+| `tag:project roof` | operators and words combine |
+
+Capitals do not matter. Results are ordered by how well they match: a note named
+after the word comes first, then one tagged with it, then one with it in a
+heading, then notes that mention it — more mentions rank higher, up to a cap, so
+a long note cannot outrank a title. Each result shows the first lines that
+matched, and a percentage for how well it matches. That is a fixed scale, not a
+comparison with the other results: 100% is as good as a note named exactly what
+you searched for. On its own a word of the title gives around 70%, a tag 30%, a
+property 25%, a heading 20%, mentions 5–13%; they add up, so a note with the word in its title,
+as a tag and in its text reaches 100% as well. A search whose best hit shows 5% found nothing that is really about
+your words. Attachments are found by file name, which counts like a note's title.
+Of the properties (front matter) the values are searched — an author, a
+description, a date as written — but not their names, which are the same in
+every note. Excalidraw drawings are not searched; a drawing is found through the
+notes that embed it.
 
 ## Graph view
 

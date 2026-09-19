@@ -23,6 +23,13 @@ func writeVault(t *testing.T, files map[string]string) string {
 	return root
 }
 
+func writeFile(t *testing.T, root, name, content string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(name)), []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestResolve(t *testing.T) {
 	root := writeVault(t, map[string]string{
 		"Home.md":             "",

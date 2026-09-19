@@ -77,7 +77,7 @@ func TestEveryKindOfLinkIsRecorded(t *testing.T) {
 	r := New(fakeLinks{"Other note.md": "/deep/Other%20note", "img/a.png": "/img/a.png"}, "/-/tag/")
 	src := "---\nrelated:\n  - \"[[Prop Note|label]]\"\nsource: \"see [[Second#Part]] too\"\n---\n" +
 		"[md](Other%20note.md#Some%20Heading) ![pic](../img/a.png) [ext](https://example.com/x.md) " +
-		"[frag](#local) [[Wiki]] `[[code]]`\n"
+		"[frag](#local) [search](-/search?q=x) [[Wiki]] `[[code]]`\n"
 	html, meta, err := r.Render([]byte(src))
 	if err != nil {
 		t.Fatal(err)
@@ -90,6 +90,7 @@ func TestEveryKindOfLinkIsRecorded(t *testing.T) {
 		`src="/img/a.png"`,
 		`href="https://example.com/x.md"`,
 		`href="#local"`,
+		`<a href="-/search?q=x">search</a>`, // the server's own pages are not vault files
 	} {
 		if !strings.Contains(string(html), want) {
 			t.Errorf("output lacks %q\n%s", want, html)

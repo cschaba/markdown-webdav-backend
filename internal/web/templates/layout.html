@@ -9,7 +9,7 @@
 <body{{if .Wide}} class="wide"{{end}}>
 <header>
 <nav class="crumbs">{{range $i, $c := .Crumbs}}{{if $i}} / {{end}}<a href="{{$c.URL}}">{{$c.Name}}</a>{{end}}</nav>
-<nav>{{with .GraphURL}}<a href="{{.}}">Graph</a> {{end}}{{with .TagsURL}}<a href="{{.}}">Tags</a>{{end}}{{if gt (len .Vaults) 1}}
+<nav>{{with .SearchURL}}<form class="search" action="{{.}}" role="search"><input type="search" name="q" value="{{$.Query}}" placeholder="Search…" aria-label="Search this vault"></form> {{end}}{{with .GraphURL}}<a href="{{.}}">Graph</a> {{end}}{{with .TagsURL}}<a href="{{.}}">Tags</a>{{end}}{{if gt (len .Vaults) 1}}
 <span class="switch">{{range .Vaults}}{{if eq .Name $.Vault}}<strong>{{.Name}}</strong>{{else}}<a href="{{.URL}}">{{.Name}}</a>{{end}} {{end}}</span>{{end}}</nav>
 </header>
 {{with .Warning}}<p class="warning">{{.}}</p>{{end}}
