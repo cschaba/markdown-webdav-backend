@@ -18,18 +18,27 @@
 
   var reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
   var article = document.querySelector("article");
+  var dialog = document.getElementById("keys-help");
+  function helpOpen() { return !!dialog && dialog.open; }
   // A page that is a list - a folder, search results, tags - is walked item by
   // item; a note is scrolled.
   var listItems = function () {
     return Array.prototype.slice.call(document.querySelectorAll("main > ul.list > li > a:first-of-type"));
   };
-  var isList = function () { return !article && listItems().length > 0; };
+  var isList = function () { return !article && !helpOpen() && listItems().length > 0; };
 
   // ---- actions ----------------------------------------------------------
 
+  // The open help is what the scrolling keys scroll: it is longer than a small
+  // window, and the page behind a modal dialog is not to be moved.
+  function scrolled() { return helpOpen() ? dialog : window; }
+  function pageHeight() { return helpOpen() ? dialog.clientHeight : innerHeight; }
   function scrollByAmount(amount, repeated) {
     // A held key repeats faster than a smooth scroll finishes.
-    scrollBy({ top: amount, behavior: repeated || reducedMotion.matches ? "auto" : "smooth" });
+    scrolled().scrollBy({ top: amount, behavior: repeated || reducedMotion.matches ? "auto" : "smooth" });
+  }
+  function scrollToEnd(bottom) {
+    scrolled().scrollTo({ top: bottom ? (helpOpen() ? dialog : document.documentElement).scrollHeight : 0 });
   }
 
   function moveInList(step) {
@@ -172,7 +181,7 @@
   }
 
   // ---- the keys -----------------------------------------------------------
-  // where: "" everywhere, "list" on pages that are a list, "note" on notes.
+  // inHelp: works while the help is open too, where it scrolls the help.
 
   var BINDINGS = [
     { group: "Everywhere" },
@@ -192,11 +201,11 @@
     { keys: "Tab", does: "The browser's own way from link to link; Shift+Tab goes back" },
 
     { group: "Scrolling" },
-    { keys: "j", alt: "k", does: "Down and up; on a list, to the next and previous item", run: function (e) { isList() ? moveInList(1) : scrollByAmount(70, e.repeat); }, runAlt: function (e) { isList() ? moveInList(-1) : scrollByAmount(-70, e.repeat); } },
-    { keys: "d", alt: "u", does: "Half a page down and up", run: function (e) { scrollByAmount(innerHeight / 2, e.repeat); }, runAlt: function (e) { scrollByAmount(-innerHeight / 2, e.repeat); } },
-    { keys: "gg", alt: "G", does: "To the top and to the bottom; on a list, to the first and last item",
-      run: function () { var i = listItems(); isList() ? focusItem(i[0]) : scrollTo({ top: 0 }); },
-      runAlt: function () { var i = listItems(); isList() ? focusItem(i[i.length - 1]) : scrollTo({ top: document.documentElement.scrollHeight }); } },
+    { keys: "j", alt: "k", inHelp: true, does: "Down and up; on a list, to the next and previous item", run: function (e) { isList() ? moveInList(1) : scrollByAmount(70, e.repeat); }, runAlt: function (e) { isList() ? moveInList(-1) : scrollByAmount(-70, e.repeat); } },
+    { keys: "d", alt: "u", inHelp: true, does: "Half a page down and up", run: function (e) { scrollByAmount(pageHeight() / 2, e.repeat); }, runAlt: function (e) { scrollByAmount(-pageHeight() / 2, e.repeat); } },
+    { keys: "gg", alt: "G", inHelp: true, does: "To the top and to the bottom; on a list, to the first and last item",
+      run: function () { var i = listItems(); isList() ? focusItem(i[0]) : scrollToEnd(false); },
+      runAlt: function () { var i = listItems(); isList() ? focusItem(i[i.length - 1]) : scrollToEnd(true); } },
     { keys: "Enter", does: "Open the item or link that has the focus" },
 
     { group: "In a note" },
@@ -206,10 +215,12 @@
     { keys: "zM", alt: "zR", does: "Fold all sections, unfold all sections", run: function () { setAllFolds(false); }, runAlt: function () { setAllFolds(true); } },
   ];
 
-  var sequences = {}; // "gg" -> function
+  var sequences = {}, helpSequences = {}; // "gg" -> function
   BINDINGS.forEach(function (b) {
-    if (b.run) sequences[b.keys] = b.run;
-    if (b.runAlt) sequences[b.alt] = b.runAlt;
+    [sequences].concat(b.inHelp ? [helpSequences] : []).forEach(function (s) {
+      if (b.run) s[b.keys] = b.run;
+      if (b.runAlt) s[b.alt] = b.runAlt;
+    });
   });
 
   // ---- on and off -----------------------------------------------------------
@@ -226,7 +237,6 @@
 
   // ---- the help -------------------------------------------------------------
 
-  var dialog = document.getElementById("keys-help");
   function buildHelp() {
     var body = dialog.querySelector(".keys-table");
     if (body.childElementCount) return;
@@ -272,6 +282,7 @@
   function setPending(value) {
     pending = value;
     clearTimeout(pendingTimer);
+    if (value) (helpOpen() ? dialog : document.body).append(badge); // a modal dialog covers the page
     badge.hidden = !value;
     badge.textContent = value;
     if (value) pendingTimer = setTimeout(function () { setPending(""); }, 1500);
@@ -300,9 +311,14 @@
     // AltGr arrives as Ctrl+Alt on some systems; it is how [ and ] are typed on many keyboards.
     var altGr = e.getModifierState && e.getModifierState("AltGraph");
     if (off || e.metaKey || ((e.ctrlKey || e.altKey) && !altGr) || e.isComposing) return;
-    if (dialog && dialog.open) return;
     if (hints) { typeHint(e.key); e.preventDefault(); return; }
-    if (typing(e.target) || e.key.length !== 1) return;
+    // In the help only the scrolling keys act, and the other characters are
+    // taken from the browser: it would answer "/" or a letter with its own
+    // find bar, on top of a help that says what the key does. Space stays the
+    // checkbox's and the button's; there is no field in the help to type in.
+    var inHelp = helpOpen(), known = inHelp ? helpSequences : sequences;
+    if (e.key.length !== 1 || (inHelp ? e.key === " " : typing(e.target))) return;
+    if (inHelp) e.preventDefault();
 
     // "g" may become "gg" or "gt": wait for the next key. A sequence that
     // leads nowhere ("gx") is dropped, and its last key tried on its own.
@@ -310,8 +326,8 @@
     setPending("");
     for (var i = 0; i < attempts.length; i++) {
       var tried = attempts[i];
-      if (sequences[tried]) { e.preventDefault(); sequences[tried](e); return; }
-      if (Object.keys(sequences).some(function (s) { return s.indexOf(tried) === 0; })) { e.preventDefault(); setPending(tried); return; }
+      if (known[tried]) { e.preventDefault(); known[tried](e); return; }
+      if (Object.keys(known).some(function (s) { return s.indexOf(tried) === 0; })) { e.preventDefault(); setPending(tried); return; }
     }
   });
 })();
