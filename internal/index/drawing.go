@@ -2,9 +2,7 @@ package index
 
 import (
 	"io/fs"
-	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"markdown-webdav-backend/internal/render"
@@ -108,5 +106,5 @@ func (idx *Index) ReadNote(vaultPath string) ([]byte, error) {
 	if idx.Note(vaultPath) == nil {
 		return nil, fs.ErrNotExist
 	}
-	return os.ReadFile(filepath.Join(idx.root, filepath.FromSlash(vaultPath)))
+	return idx.readFile(vaultPath)
 }

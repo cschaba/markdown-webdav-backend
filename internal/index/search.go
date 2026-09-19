@@ -2,9 +2,7 @@ package index
 
 import (
 	"fmt"
-	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
@@ -262,7 +260,7 @@ func (idx *Index) scoreNote(note *Note, q query) (result SearchResult, ok bool) 
 	if len(q.terms)+len(q.tasks) == 0 { // only tag: and path:, which the caller checked
 		return result, true
 	}
-	src, err := os.ReadFile(filepath.Join(idx.root, filepath.FromSlash(note.Path)))
+	src, err := idx.readFile(note.Path)
 	if err != nil {
 		return result, false
 	}
@@ -408,7 +406,7 @@ func (idx *Index) snippets(note *Note, rel string, q query) []string {
 	if len(out) == maxSnippets {
 		return out
 	}
-	src, err := os.ReadFile(filepath.Join(idx.root, filepath.FromSlash(rel)))
+	src, err := idx.readFile(rel)
 	if err != nil {
 		return out
 	}

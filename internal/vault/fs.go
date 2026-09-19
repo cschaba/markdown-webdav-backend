@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"golang.org/x/net/webdav"
@@ -23,19 +24,29 @@ type Change struct {
 
 // FS wraps a directory. It hides the git repository from clients: a sync
 // client that uploads or deletes inside .git destroys the history.
+//
+// Every access goes through os.Root, as in the web view: a symbolic link in
+// the vault that points out of it is not followed. webdav.Dir would follow
+// it, and hand a sync client whatever the link leads to, to read and to write.
 type FS struct {
-	dir      webdav.Dir
+	root     *os.Root
 	onChange func(Change)
 }
 
-func New(root string, onChange func(Change)) *FS {
-	return &FS{dir: webdav.Dir(root), onChange: onChange}
+func New(dir string, onChange func(Change)) (*FS, error) {
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, err
+	}
+	return &FS{root: root, onChange: onChange}, nil
 }
 
-// Hidden reports whether a vault path must not be visible over WebDAV.
+// Hidden reports whether a vault path must not be visible over WebDAV. The
+// comparison ignores case, and the dots and spaces that some file systems
+// drop from the end of a name: there ".GIT" and ".git." are the repository.
 func Hidden(name string) bool {
 	for _, part := range strings.Split(path.Clean("/"+name), "/") {
-		if part == ".git" {
+		if strings.EqualFold(strings.TrimRight(part, ". "), ".git") {
 			return true
 		}
 	}
@@ -46,11 +57,19 @@ func rel(name string) string {
 	return strings.TrimPrefix(path.Clean("/"+name), "/")
 }
 
+// local is name as os.Root wants it: relative, "." for the vault itself.
+func local(name string) string {
+	if r := rel(name); r != "" {
+		return filepath.FromSlash(r)
+	}
+	return "."
+}
+
 func (f *FS) Mkdir(ctx context.Context, name string, perm os.FileMode) error {
 	if Hidden(name) {
 		return os.ErrPermission
 	}
-	if err := f.dir.Mkdir(ctx, name, perm); err != nil {
+	if err := f.root.Mkdir(local(name), perm); err != nil {
 		return err
 	}
 	f.onChange(Change{Path: rel(name)})
@@ -61,7 +80,7 @@ func (f *FS) OpenFile(ctx context.Context, name string, flag int, perm os.FileMo
 	if Hidden(name) {
 		return nil, os.ErrNotExist
 	}
-	file, err := f.dir.OpenFile(ctx, name, flag, perm)
+	file, err := f.root.OpenFile(local(name), flag, perm)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +95,10 @@ func (f *FS) RemoveAll(ctx context.Context, name string) error {
 	if Hidden(name) {
 		return os.ErrPermission
 	}
-	if err := f.dir.RemoveAll(ctx, name); err != nil {
+	if rel(name) == "" {
+		return os.ErrInvalid // the vault itself stays
+	}
+	if err := f.root.RemoveAll(local(name)); err != nil {
 		return err
 	}
 	f.onChange(Change{Path: rel(name)})
@@ -87,7 +109,10 @@ func (f *FS) Rename(ctx context.Context, oldName, newName string) error {
 	if Hidden(oldName) || Hidden(newName) {
 		return os.ErrPermission
 	}
-	if err := f.dir.Rename(ctx, oldName, newName); err != nil {
+	if rel(oldName) == "" || rel(newName) == "" {
+		return os.ErrInvalid
+	}
+	if err := f.root.Rename(local(oldName), local(newName)); err != nil {
 		return err
 	}
 	f.onChange(Change{Path: rel(newName)})
@@ -98,7 +123,7 @@ func (f *FS) Stat(ctx context.Context, name string) (os.FileInfo, error) {
 	if Hidden(name) {
 		return nil, os.ErrNotExist
 	}
-	return f.dir.Stat(ctx, name)
+	return f.root.Stat(local(name))
 }
 
 // watchedFile reports a write once the client has finished it, and filters
@@ -120,7 +145,7 @@ func (w *watchedFile) Readdir(count int) ([]fs.FileInfo, error) {
 	infos, err := w.File.Readdir(count)
 	visible := infos[:0]
 	for _, info := range infos {
-		if info.Name() != ".git" {
+		if !Hidden(info.Name()) {
 			visible = append(visible, info)
 		}
 	}

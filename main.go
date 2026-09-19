@@ -137,7 +137,7 @@ func mount(mux *http.ServeMux, spec vaultSpec, links []web.Vault, quiet, maxWait
 		return nil, err
 	}
 
-	fs := vault.New(spec.dir, func(c vault.Change) {
+	fs, err := vault.New(spec.dir, func(c vault.Change) {
 		if c.FileWrite {
 			idx.Update(c.Path)
 		} else if err := idx.Rebuild(); err != nil {
@@ -147,6 +147,9 @@ func mount(mux *http.ServeMux, spec vaultSpec, links []web.Vault, quiet, maxWait
 			committer.Touch()
 		}
 	})
+	if err != nil {
+		return nil, err
+	}
 	dav := &webdav.Handler{
 		Prefix:     davPrefix + "/" + spec.name,
 		FileSystem: fs,
