@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"markdown-webdav-backend/internal/index"
+	"github.com/cschaba/markdown-webdav-backend/internal/index"
 )
 
 // handlerFor mounts the vault in dir as "/<name>".

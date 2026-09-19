@@ -17,10 +17,10 @@ import (
 
 	"golang.org/x/net/webdav"
 
-	"markdown-webdav-backend/internal/gitlog"
-	"markdown-webdav-backend/internal/index"
-	"markdown-webdav-backend/internal/vault"
-	"markdown-webdav-backend/internal/web"
+	"github.com/cschaba/markdown-webdav-backend/internal/gitlog"
+	"github.com/cschaba/markdown-webdav-backend/internal/index"
+	"github.com/cschaba/markdown-webdav-backend/internal/vault"
+	"github.com/cschaba/markdown-webdav-backend/internal/web"
 )
 
 // davPrefix is where sync clients connect: "/dav/<vault>/". The web view of a

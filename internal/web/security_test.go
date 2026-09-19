@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"markdown-webdav-backend/internal/render"
+	"github.com/cschaba/markdown-webdav-backend/internal/render"
 )
 
 // A symbolic link in the vault that leads out of it shows nothing of what it

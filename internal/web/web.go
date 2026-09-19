@@ -18,8 +18,8 @@ import (
 	"sort"
 	"strings"
 
-	"markdown-webdav-backend/internal/index"
-	"markdown-webdav-backend/internal/render"
+	"github.com/cschaba/markdown-webdav-backend/internal/index"
+	"github.com/cschaba/markdown-webdav-backend/internal/render"
 )
 
 //go:embed templates/*.html static/style.css static/graph.js static/print.js static/keys.js static/slides.js static/mermaid-start.js

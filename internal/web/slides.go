@@ -9,7 +9,7 @@ import (
 	"path"
 	"strings"
 
-	"markdown-webdav-backend/internal/index"
+	"github.com/cschaba/markdown-webdav-backend/internal/index"
 )
 
 // The slide show: a note whose slides are separated the Obsidian way, shown
