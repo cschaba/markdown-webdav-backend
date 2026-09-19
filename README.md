@@ -32,7 +32,7 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Excalidraw drawings | works through the plugin's exported picture, see below |
 | Obsidian "Bases" (`.base` files) | not started |
 | Callouts, note embeds (`![[Note]]`), `==highlight==`, `%%comments%%` | not started |
-| Search | works: words, phrases, `tag:` and `path:`, ranked by how well a note matches |
+| Search | works: words, phrases, `tag:`, `path:` and Obsidian's task operators, ranked by how well a note matches |
 | Search history | works: the last 10 searches, in a cookie, with a way to clear them |
 | Live results while typing, highlighted matches, history view in the browser | not started |
 | Logseq | untested |
@@ -112,6 +112,9 @@ The box in the header searches the current vault.
 | `"garden plan"` | the exact phrase |
 | `tag:project` | only notes with that tag, or one nested below it |
 | `path:daily/` | only notes whose folder or file name contains that text |
+| `task-todo:""` | notes with open tasks (`- [ ]`), the one with most of them first |
+| `task-todo:dentist` | notes with an open task that mentions the word |
+| `task-done:""`, `task:""` | the same for completed tasks, and for tasks of either kind |
 | `tag:project roof` | operators and words combine |
 
 Capitals do not matter. Results are ordered by how well they match: a note named
@@ -128,6 +131,11 @@ Of the properties (front matter) the values are searched — an author, a
 description, a date as written — but not their names, which are the same in
 every note. Excalidraw drawings are not searched; a drawing is found through the
 notes that embed it.
+
+The task operators are Obsidian's own, so a query works in both places. Only
+`[ ]` is open; any other mark (`[x]`, `[-]`, `[/]`) counts as completed. A task
+search lists the tasks it found and their number instead of a percentage; tasks
+in block quotes count, tasks in code blocks do not.
 
 The last ten searches that found something are remembered. Click into the
 search box, or on its magnifier, and they drop down below it, latest on top;

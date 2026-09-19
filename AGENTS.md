@@ -83,6 +83,9 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
   tag, property value, heading, path, text), pinned by `TestSearchRanking`. Anything that makes
   the scan slower shows at once in the timings in `docs/ARCHITECTURE.md`:
   re-measure the same way after touching it, do not estimate.
+- Task search (`internal/index/tasks.go`) uses Obsidian's operators and its
+  rule that only `[ ]` is open. Keep it compatible: the point is that a query
+  typed in one place works in the other.
 - Search history (`internal/web/history.go`) is a cookie the server reads and
   writes; there is no script and no server-side state. The dropdown under the
   search box opens through CSS `:focus-within`; the magnifier is the field's

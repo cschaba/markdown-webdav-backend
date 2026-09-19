@@ -27,6 +27,25 @@ something, so they are kept; [xyzzy-nothing](-/search?q=xyzzy-nothing) would be
 too, for the same reason. Type something that finds nothing to see it left out.
 *Clear history* forgets them all; *Clear search* only empties the box.
 
+## Tasks
+
+Obsidian's three operators. The tasks of this page:
+
+- [ ] inflate the zeppelin
+- [x] moor the zeppelin
+- [ ] check the ballast
+
+[task-todo:""](-/search?q=task-todo%3A%22%22) lists the notes with open tasks,
+this one first with two, then 01 Formatting with one, and shows the tasks
+rather than a percentage. [task-done:zeppelin](-/search?q=task-done%3Azeppelin)
+finds only the mooring, [task:""](-/search?q=task%3A%22%22) all five tasks of
+the vault, [task-todo:ballast tag:test](-/search?q=task-todo%3Aballast+tag%3Atest)
+combines. A task written as an example in a code block does not count:
+
+```md
+- [ ] an example, not a task
+```
+
 ## Operators
 
 This page quotes every query below, so it is itself among the results each

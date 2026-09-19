@@ -22,7 +22,8 @@ import (
 // slow, keep the text in Note and change only this file.
 //
 // Query syntax: words and "quoted phrases" must all occur; tag:name and
-// path:text narrow the notes down. Everything ignores case.
+// path:text narrow the notes down; task:, task-todo: and task-done: find
+// tasks, see tasks.go. Everything ignores case.
 
 type SearchResult struct {
 	Title    string
@@ -37,7 +38,9 @@ type SearchResult struct {
 	// not read as perfect. Results are ordered by Score, which is not capped.
 	// It is 0 when only tag: and path: were given: those notes all match alike.
 	Percent    int
-	Attachment bool // matched by file name only
+	Tasks      int        // how many task lines match the task operators
+	TaskLines  []TaskLine // the first of them, shown in place of Snippets
+	Attachment bool       // matched by file name only
 }
 
 // Scores per search term, by where it was found. The order is the point, not
@@ -66,11 +69,16 @@ type query struct {
 	terms []string // lowercased words and phrases
 	tags  []string
 	paths []string
+	tasks []taskFilter
 }
 
 func parseQuery(q string) query {
 	var out query
 	for _, field := range splitQuery(strings.ToLower(q)) {
+		if filter, ok := parseTaskFilter(field); ok {
+			out.tasks = append(out.tasks, filter)
+			continue
+		}
 		switch {
 		case strings.HasPrefix(field, "tag:"):
 			if tag := strings.Trim(field[len("tag:"):], "#/"); tag != "" {
@@ -113,7 +121,7 @@ func splitQuery(q string) []string {
 	return fields
 }
 
-func (q query) empty() bool { return len(q.terms)+len(q.tags)+len(q.paths) == 0 }
+func (q query) empty() bool { return len(q.terms)+len(q.tags)+len(q.paths)+len(q.tasks) == 0 }
 
 func (q query) pathOK(rel string) bool {
 	rel = strings.ToLower(rel)
@@ -152,7 +160,7 @@ func (idx *Index) Search(q string) []SearchResult {
 		notes = append(notes, note)
 	}
 	var files []string
-	if len(query.tags) == 0 && len(query.terms) > 0 { // a file has no tags, and needs a name to match
+	if len(query.tags)+len(query.tasks) == 0 && len(query.terms) > 0 { // a file has no tags or tasks, and needs a name to match
 		for _, paths := range idx.byName {
 			for _, p := range paths {
 				if idx.notes[p] == nil && !drawingPath(p) {
@@ -222,6 +230,9 @@ func (idx *Index) Search(q string) []SearchResult {
 		if a.Score != b.Score {
 			return a.Score > b.Score
 		}
+		if a.Tasks != b.Tasks { // "where is most to do" when only tasks were asked for
+			return a.Tasks > b.Tasks
+		}
 		if at, bt := strings.ToLower(a.Title), strings.ToLower(b.Title); at != bt {
 			return at < bt
 		}
@@ -231,7 +242,7 @@ func (idx *Index) Search(q string) []SearchResult {
 		results = results[:maxResults]
 	}
 	for i := range results {
-		if !results[i].Attachment {
+		if !results[i].Attachment && results[i].Tasks == 0 { // task results bring their task lines
 			results[i].Snippets = idx.snippets(idx.Note(results[i].Path), results[i].Path, query)
 		}
 		if n := len(query.terms); n > 0 {
@@ -248,14 +259,20 @@ func (idx *Index) Search(q string) []SearchResult {
 // large string are far cheaper than the same work line by line.
 func (idx *Index) scoreNote(note *Note, q query) (result SearchResult, ok bool) {
 	result = SearchResult{Title: note.Title, URL: note.URL, Path: note.Path}
-	if len(q.terms) == 0 { // only tag: and path:, which the caller checked
+	if len(q.terms)+len(q.tasks) == 0 { // only tag: and path:, which the caller checked
 		return result, true
 	}
 	src, err := os.ReadFile(filepath.Join(idx.root, filepath.FromSlash(note.Path)))
 	if err != nil {
 		return result, false
 	}
-	text := strings.ToLower(body(string(src)))
+	original := body(string(src))
+	if len(q.tasks) > 0 {
+		if result.Tasks, result.TaskLines = matchTasks(original, q.tasks); result.Tasks == 0 {
+			return result, false
+		}
+	}
+	text := strings.ToLower(original)
 	title, file := strings.ToLower(note.Title), strings.ToLower(note.Path)
 	var headings []string // found on first need: most notes fail on a term before
 

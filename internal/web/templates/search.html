@@ -3,8 +3,9 @@
 {{with .Body}}{{if .Query}}
 <p class="empty">{{len .Results}} {{if eq (len .Results) 1}}result{{else}}results{{end}} for “{{.Query}}”, best match first. <a href="{{.SearchURL}}">Clear search</a></p>
 <ul class="list results">
-{{range .Results}}<li>{{with .Percent}}<span class="match" title="How well this matches. 100% is as good as a note named exactly what you searched for.">{{.}}%</span>{{end}}<a href="{{.URL}}">{{.Title}}</a> <small>{{.Path}}{{if .Attachment}} · attachment{{end}}</small>
-{{range .Snippets}}<p class="snippet">{{.}}</p>
+{{range .Results}}<li>{{if or .Percent .Tasks}}<span class="match">{{with .Percent}}<span title="How well this matches. 100% is as good as a note named exactly what you searched for.">{{.}}%</span>{{end}}{{if and .Percent .Tasks}} · {{end}}{{with .Tasks}}{{.}} {{if eq . 1}}task{{else}}tasks{{end}}{{end}}</span>{{end}}<a href="{{.URL}}">{{.Title}}</a> <small>{{.Path}}{{if .Attachment}} · attachment{{end}}</small>
+{{range .TaskLines}}<p class="snippet task"><input type="checkbox" disabled{{if .Done}} checked{{end}}> {{.Text}}</p>
+{{end}}{{range .Snippets}}<p class="snippet">{{.}}</p>
 {{end}}</li>
 {{end}}</ul>
 {{end}}{{end}}
@@ -14,7 +15,7 @@
 {{range .History}}<li><a href="{{$.Body.SearchURL}}?q={{.}}">{{.}}</a></li>
 {{end}}</ul>
 <form method="post" action="{{.SearchURL}}/clear"><button type="submit">Clear history</button></form>
-<p class="empty">Kept in a cookie in this browser, for this vault: the last {{len .History}} searches that found something.</p>
+<p class="empty">Kept in a cookie in this browser, for this vault: {{if eq (len .History) 1}}the last search{{else}}the last {{len .History}} searches{{end}} that found something.</p>
 </section>{{end}}{{end}}
 <details class="help"{{if not .Body.Results}} open{{end}}>
 <summary>How to search</summary>
@@ -23,8 +24,11 @@
 <tr><th><code>"garden plan"</code></th><td>the exact phrase</td></tr>
 <tr><th><code>tag:project</code></th><td>only notes with that tag, or one nested below it</td></tr>
 <tr><th><code>path:daily/</code></th><td>only notes whose folder or file name contains that text</td></tr>
+<tr><th><code>task-todo:""</code></th><td>notes with open tasks (<code>- [ ]</code>), the one with most of them first</td></tr>
+<tr><th><code>task-todo:dentist</code></th><td>notes with an open task that mentions the word</td></tr>
+<tr><th><code>task-done:""</code>, <code>task:""</code></th><td>the same for completed tasks, and for tasks of either kind</td></tr>
 <tr><th><code>tag:project roof</code></th><td>operators and words combine</td></tr>
 </table>
-<p class="empty">Capitals do not matter. The percentage says how well a result matches: 100% is as good as a note named exactly what you searched for. On its own, a word in the title gives about 70%, a tag 30%, a property 25%, a heading 20%, and mentions in the text 5–13%, depending on how often; they add up, so a note that has the word in its title, as a tag and in its text reaches 100% too. It is not relative to the other results, so a search whose best hit shows 5% found nothing that is really about your words. Of the properties the values are searched, not their names. Excalidraw drawings are not searched; attachments are found by file name.</p>
+<p class="empty">Capitals do not matter. The percentage says how well a result matches: 100% is as good as a note named exactly what you searched for. On its own, a word in the title gives about 70%, a tag 30%, a property 25%, a heading 20%, and mentions in the text 5–13%, depending on how often; they add up, so a note that has the word in its title, as a tag and in its text reaches 100% too. It is not relative to the other results, so a search whose best hit shows 5% found nothing that is really about your words. Of the properties the values are searched, not their names. Excalidraw drawings are not searched; attachments are found by file name. The task operators are Obsidian's: only <code>[ ]</code> is open, any other mark counts as completed. A task search shows the tasks it found and how many there are, not a percentage.</p>
 </details>
 {{template "foot" .}}
