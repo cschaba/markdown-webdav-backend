@@ -96,6 +96,10 @@ func main() {
 		fatal("cannot build assets", "err", err)
 	}
 	mux.Handle("GET "+web.AssetsPath, assets)
+	// Above the vaults: a list of them. More specific patterns win, so each
+	// vault's "/dav/<name>/" still goes to its own handler.
+	mux.Handle(davPrefix+"/", sandboxed(davRoot(specs)))
+	mux.Handle(davPrefix, sandboxed(davRoot(specs)))
 	mux.Handle("GET /{$}", web.Home(links, version))
 
 	var handler http.Handler = mux
