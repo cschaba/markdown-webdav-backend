@@ -7,19 +7,27 @@
 <link rel="stylesheet" href="/-/style.css">
 </head>
 <body{{if .Wide}} class="wide"{{end}}>
+<a class="skip" href="#content">Skip to content</a>
 <header>
-<nav class="crumbs">{{range $i, $c := .Crumbs}}{{if $i}} / {{end}}<a href="{{$c.URL}}">{{$c.Name}}</a>{{end}}</nav>
-<nav>{{with .SearchURL}}<form class="search" action="{{.}}" role="search"><label for="search-q" title="{{if $.History}}Recent searches{{else}}Search{{end}}"><svg viewBox="0 0 22 16" width="22" height="16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4 4"/>{{if $.History}}<path class="more" d="M16.5 6.5l2 2 2-2"/>{{end}}</svg></label><input id="search-q" type="search" name="q" value="{{$.Query}}" placeholder="Search…" aria-label="Search this vault" autocomplete="off">{{if $.History}}
+<nav class="crumbs" aria-label="Breadcrumb">{{range $i, $c := .Crumbs}}{{if $i}} / {{end}}<a href="{{$c.URL}}">{{$c.Name}}</a>{{end}}</nav>
+<nav aria-label="Site">{{with .SearchURL}}<form class="search" action="{{.}}" role="search"><label for="search-q" title="{{if $.History}}Recent searches{{else}}Search{{end}}"><svg viewBox="0 0 22 16" width="22" height="16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5"/><path d="M10 10l4 4"/>{{if $.History}}<path class="more" d="M16.5 6.5l2 2 2-2"/>{{end}}</svg></label><input id="search-q" type="search" name="q" value="{{$.Query}}" placeholder="Search…" aria-label="Search this vault" autocomplete="off">{{if $.History}}
 <ul class="search-history" aria-label="Recent searches">{{range $.History}}<li><a href="{{$.SearchURL}}?q={{.}}">{{.}}</a></li>{{end}}</ul>{{end}}</form> {{end}}{{with .GraphURL}}<a href="{{.}}">Graph</a> {{end}}{{with .TagsURL}}<a href="{{.}}">Tags</a>{{end}}{{if gt (len .Vaults) 1}}
 <span class="switch">{{range .Vaults}}{{if eq .Name $.Vault}}<strong>{{.Name}}</strong>{{else}}<a href="{{.URL}}">{{.Name}}</a>{{end}} {{end}}</span>{{end}}</nav>
 </header>
 {{with .Warning}}<p class="warning">{{.}}</p>{{end}}
-<main>
+<main id="content" tabindex="-1">
 {{end}}
 
 {{define "foot"}}</main>
-{{with .ExportURL}}<footer><a href="{{.}}">Export to PDF</a></footer>
-{{end}}<script src="/-/print.js"></script>
+<footer>{{with .ExportURL}}<a href="{{.}}">Export to PDF</a>{{end}}<button type="button" id="keys-button" hidden>Keyboard shortcuts <kbd>?</kbd></button></footer>
+<dialog id="keys-help" aria-labelledby="keys-title">
+<form method="dialog"><h2 id="keys-title">Keyboard shortcuts</h2><button aria-label="Close">×</button></form>
+<label class="keys-switch"><input type="checkbox" id="keys-enabled" checked> Single-key shortcuts are on</label>
+<p class="hint">Switch them off if they get in the way of dictation or a screen reader. Tab, Enter, Esc and the arrow keys in the search field work either way. This help stays reachable from the foot of every page.</p>
+<div class="keys-table"></div>
+</dialog>
+<script src="/-/print.js"></script>
+<script src="/-/keys.js"></script>
 </body>
 </html>
 {{end}}

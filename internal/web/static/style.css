@@ -172,8 +172,46 @@ body.wide main { flex: 1; min-height: 0; display: flex; }
 .float-tooltip-kap { padding: 4px 8px !important; font: 0.8rem/1.4 system-ui, sans-serif !important; color: var(--fg) !important; background: var(--soft) !important; border: 1px solid var(--line); border-radius: 6px !important; }
 @media (max-width: 640px) { #graph-panel { left: 16px; right: 16px; width: auto; max-height: 55%; } }
 
-footer { margin-top: 3rem; padding-top: 12px; border-top: 1px solid var(--line); font-size: 0.85rem; text-align: right; }
-footer a { color: var(--muted); }
+footer { display: flex; justify-content: flex-end; gap: 16px; margin-top: 3rem; padding-top: 12px; border-top: 1px solid var(--line); font-size: 0.85rem; }
+footer a, footer button { color: var(--muted); }
+footer button { padding: 0; font: inherit; background: none; border: 0; cursor: pointer; }
+footer button:hover { text-decoration: underline; }
+
+/* ---- Keyboard ---------------------------------------------------------- */
+/* What has the focus must be seen: it is the cursor of the keyboard. */
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+main:focus { outline: none; } /* the skip link's target; focus there is a position, not a selection */
+.skip { position: absolute; left: 16px; top: -4rem; z-index: 30; padding: 6px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; }
+.skip:focus { top: 8px; }
+kbd {
+  display: inline-block; min-width: 1.4em; padding: 0 5px; text-align: center; font: 0.85em/1.5 ui-monospace, monospace;
+  color: var(--fg); background: var(--soft); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px;
+}
+#keys-help {
+  width: min(38rem, calc(100vw - 32px)); max-height: calc(100vh - 48px); padding: 16px 20px;
+  color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+}
+#keys-help::backdrop { background: rgba(0, 0, 0, 0.45); }
+#keys-help form { display: flex; justify-content: space-between; align-items: center; }
+#keys-help h2 { margin: 0; font-size: 1.1rem; }
+#keys-help h3 { margin: 16px 0 4px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+#keys-help form button { font-size: 1.3rem; line-height: 1; padding: 2px 8px; color: var(--muted); background: none; border: 0; cursor: pointer; }
+#keys-help table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+#keys-help td { padding: 4px 0; vertical-align: top; border-top: 1px solid var(--line); }
+#keys-help td:first-child { width: 6.5rem; white-space: nowrap; }
+#keys-help .keys-switch { display: flex; gap: 8px; align-items: center; margin-top: 12px; font-size: 0.9rem; }
+#keys-help .hint { margin: 4px 0 0; color: var(--muted); font-size: 0.8rem; }
+/* f: a letter on every link */
+.key-hints { position: fixed; inset: 0; z-index: 40; pointer-events: none; }
+.key-hints span {
+  position: absolute; padding: 0 4px; font: bold 12px/1.5 ui-monospace, monospace; text-transform: uppercase;
+  color: #1f2328; background: #ffd33d; border: 1px solid #9a6700; border-radius: 3px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+/* a key sequence under way: "g" waiting for its second key */
+.key-pending {
+  position: fixed; right: 16px; bottom: 16px; z-index: 40; padding: 2px 10px; font: 0.9rem ui-monospace, monospace;
+  color: var(--fg); background: var(--soft); border: 1px solid var(--line); border-radius: 6px;
+}
 
 /* An intentional page break. On screen only a hint that it is there. */
 .page-break { height: 0; margin: 1.5rem 0; border-top: 1px dashed var(--line); }
@@ -236,7 +274,7 @@ html.export body { max-width: none; padding: 0 0 48px; background: #e9eaec; font
   :root { --fg: #111; --muted: #555; --bg: #fff; --soft: #f6f6f6; --line: #ccc; --link: #111; color-scheme: light; }
   body, html.export body { max-width: none; margin: 0; padding: 0; background: #fff; }
   /* the site's furniture: navigation, search, backlinks, the export bar */
-  header, footer, aside, .warning, .export-bar, .tags, .properties, details.help, .history { display: none !important; }
+  header, footer, aside, dialog, .skip, .key-hints, .key-pending, .warning, .export-bar, .tags, .properties, details.help, .history { display: none !important; }
   .paper { width: auto !important; margin: 0; padding: 0 !important; box-shadow: none; }
   .paper .page-break, .page-break { break-after: page; height: 0; margin: 0; border: 0; }
   .page-break::after, .paper .page-break::after { content: none; }

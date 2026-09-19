@@ -32,6 +32,7 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Excalidraw drawings | works through the plugin's exported picture, see below |
 | Obsidian "Bases" (`.base` files) | not started |
 | Note embeds, `![[Note]]` and `![[Note#Heading]]` | works, one level deep |
+| Keyboard: Vim-style keys, link hints, help, can be switched off | works |
 | Printing and PDF export in book format | works; page numbers come from the print dialog |
 | Export as a slide show | not started |
 | Callouts, block references (`#^id`), `==highlight==`, `%%comments%%` | not started |
@@ -104,6 +105,44 @@ route is the community plugin **Remotely Save**, which syncs a local vault with 
 WebDAV server on every platform: point it at `https://your-host/dav/<vault>/`
 with the login above. On a desktop the endpoint can also simply be mounted (Finder, GNOME
 Files, `rclone`, `davfs2`).
+
+## Keyboard
+
+Every page can be used from the keyboard, with keys that Vim and Vimium users
+know. Press `?` for the list; it is also behind *Keyboard shortcuts* at the foot
+of every page.
+
+| Key | |
+|---|---|
+| `/` | focus the search field; there, the arrow keys walk the recent searches |
+| `?` | the help |
+| `Esc` | leave a field, close the help, cancel a key sequence |
+| `j` / `k` | scroll down and up — on a list (a folder, search results, tags): to the next and previous item |
+| `d` / `u` | half a page down and up |
+| `gg` / `G` | to the top and bottom — on a list: the first and last item |
+| `Enter` | open what has the focus |
+| `f` / `F` | follow a link: letters appear on every link in view, type them; `F` opens a new tab |
+| `]]` / `[[` | to the next and previous heading of a note |
+| `J` / `K` | the same, for keyboards where `[` and `]` need AltGr |
+| `za` | fold or unfold the section at the heading that has the focus |
+| `zM` / `zR` | fold all, unfold all |
+| `H` / `L` | back and forward in the browser's history |
+| `-` | up, to the folder the page is in |
+| `gh` / `gt` / `gr` / `gp` | go home, to the tags, to the graph, to the PDF export |
+| `Tab` | the browser's own way from link to link |
+
+**Focus is the browser's own.** Moving through a list or to a heading moves the
+real focus, shown by a ring, so *Enter* opens it and a screen reader announces
+it. A heading is focused through the control that folds its section.
+
+**Accessibility.** Single-key shortcuts can clash with dictation and with a
+screen reader's own keys, so they can be switched off in the help (WCAG 2.1,
+2.1.4); the choice is remembered, and the help stays reachable from the footer.
+They never act while a field is being typed in, nor with Ctrl, Alt or Meta. The
+first Tab on a page reaches a *Skip to content* link; the help is a modal dialog
+that keeps the focus and gives it back; scrolling is not animated where the
+system asks for reduced motion. None of it needs a mouse, and without
+JavaScript the pages work as before, by Tab and Enter.
 
 ## Links
 

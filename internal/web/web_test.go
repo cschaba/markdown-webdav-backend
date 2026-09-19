@@ -92,6 +92,8 @@ func TestAssets(t *testing.T) {
 	for p, want := range map[string][2]string{
 		"/-/style.css": {"text/css", ".chroma"}, // includes the highlight stylesheet
 		"/-/graph.js":  {"text/javascript", "ForceGraph"},
+		"/-/print.js":  {"text/javascript", "beforeprint"},
+		"/-/keys.js":   {"text/javascript", "BINDINGS"},
 	} {
 		res := httptestGet(h, p)
 		b, _ := io.ReadAll(res.Body)

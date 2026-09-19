@@ -22,7 +22,7 @@ import (
 	"markdown-webdav-backend/internal/render"
 )
 
-//go:embed templates/*.html static/style.css static/graph.js static/print.js
+//go:embed templates/*.html static/style.css static/graph.js static/print.js static/keys.js
 var assets embed.FS
 
 var templates = template.Must(template.ParseFS(assets, "templates/*.html"))
@@ -156,6 +156,11 @@ func Assets() (http.Handler, error) {
 	serve("style.css", "text/css; charset=utf-8", style.Bytes())
 	serve("graph.js", "text/javascript; charset=utf-8", script)
 	serve("print.js", "text/javascript; charset=utf-8", printScript)
+	keysScript, err := assets.ReadFile("static/keys.js")
+	if err != nil {
+		return nil, err
+	}
+	serve("keys.js", "text/javascript; charset=utf-8", keysScript)
 	return mux, nil
 }
 

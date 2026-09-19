@@ -97,6 +97,19 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
   A server-made PDF would be the way to get numbers everywhere.
 - A note and a folder of the same name: the note owns the URL, the folder the
   URL with a trailing slash. Build folder URLs with `Handler.folderURL`.
+- Keyboard (`internal/web/static/keys.js`): Vim-style keys, link hints, a help
+  dialog. Three things bind:
+  1. **The keys move the browser's real focus**, never a painted highlight;
+     that is what keeps it usable with a screen reader and makes Enter work.
+  2. **Single-key shortcuts must stay switchable off** (WCAG 2.1, 2.1.4), the
+     switch reachable without a shortcut; they never act in a field or with
+     Ctrl/Alt/Meta.
+  3. **A key is added to `BINDINGS` and nowhere else**: the help is built from
+     it, and a Go test fails if the README's table differs.
+  `tools/check-keyboard.mjs` presses real keys in a browser (usage in the file);
+  nothing about keys can be tested from the HTML. When synthesising keys over
+  the DevTools protocol, named keys need `code` and `nativeVirtualKeyCode`, or
+  Enter activates nothing and the test blames the page.
 - Note embeds (`internal/render/embed.go`): `![[Note]]` renders the other note
   with the same renderer, *from the other note's path*, and puts the HTML into
   the host's tree in place of the wikilink. **One level deep, by the owner's

@@ -130,9 +130,9 @@ func TestExportPage(t *testing.T) {
 	}
 	// the link that leads here
 	for p, want := range map[string]string{
-		"/test/10%20Printing":              `<footer><a href="/test/-/export?path=10%20Printing.md">Export to PDF</a></footer>`,
-		"/test/10%20Printing/":             `<footer><a href="/test/-/export?path=10%20Printing">Export to PDF</a></footer>`,
-		"/test/":                           `<footer><a href="/test/-/export?path=">Export to PDF</a></footer>`,
+		"/test/10%20Printing":              `<footer><a href="/test/-/export?path=10%20Printing.md">Export to PDF</a>`,
+		"/test/10%20Printing/":             `<footer><a href="/test/-/export?path=10%20Printing">Export to PDF</a>`,
+		"/test/":                           `<footer><a href="/test/-/export?path=">Export to PDF</a>`,
 		"/test/drawings/Sketch.excalidraw": `/test/-/export?path=drawings%2FSketch.excalidraw.md`,
 	} {
 		res := get(p)
