@@ -38,15 +38,20 @@ type LinkResolver interface {
 	// ResolveEmbed says what to show for ![[target]]. It is only asked
 	// about targets that ResolveLink found.
 	ResolveEmbed(from, target string) Embed
+	// ReadNote returns the source of the note at a vault path, for embedding.
+	ReadNote(vaultPath string) ([]byte, error)
 	// HasHeading reports whether the note that target means has a heading
 	// with that id. For anything that is not a note it reports true: there
 	// is nothing to check a heading against.
 	HasHeading(from, target, id string) bool
 }
 
-// Embed is what stands in for an embedded file. With no Image the embed is
-// rendered as a link to the file.
+// Embed is what stands in for an embedded file. With neither Image nor Note
+// the embed is rendered as a link to the file.
 type Embed struct {
+	// Note is the vault path of a note to show in place, Title its title.
+	Note      string
+	Title     string
 	Image     string // URL of the picture to show
 	DarkImage string // its variant for dark mode, if there is one
 	// Drawing marks an Excalidraw drawing. Its Image is the picture the
@@ -60,6 +65,8 @@ type Meta struct {
 	Frontmatter map[string]any
 	Tags        []string // front matter and inline, lowercased, sorted, unique
 	Headings    []string // the ids of the note's headings, in order
+
+	needsMermaid bool // an embedded note has diagrams; the page must load the script
 	// Links holds the targets of everything that points at another vault
 	// file: wikilinks, wikilinks inside front matter values, and relative
 	// Markdown links. Raw targets without fragment, front matter first.
@@ -99,7 +106,7 @@ func New(links LinkResolver, tagURL string) *Renderer {
 // Render returns the HTML of a note together with its metadata. from is the
 // note's vault path: its links are resolved from where it stands.
 func (r *Renderer) Render(src []byte, from string) (template.HTML, Meta, error) {
-	doc, meta := r.parse(src, from, true)
+	doc, meta := r.parse(src, from, true, false)
 	var buf bytes.Buffer
 	if err := r.md.Renderer().Render(&buf, src, doc); err != nil {
 		return "", meta, err
@@ -109,7 +116,7 @@ func (r *Renderer) Render(src []byte, from string) (template.HTML, Meta, error) 
 
 // Meta parses a note without rendering it.
 func (r *Renderer) Meta(src []byte) Meta {
-	_, meta := r.parse(src, "", false)
+	_, meta := r.parse(src, "", false, false)
 	return meta
 }
 
@@ -117,7 +124,10 @@ func (r *Renderer) Meta(src []byte) Meta {
 // vault: Markdown links get their real URL, and whatever has no file behind it
 // becomes a missing marker. The index skips that, since it only needs Meta, and
 // while it is being built there is nothing to resolve against yet.
-func (r *Renderer) parse(src []byte, from string, forRender bool) (ast.Node, Meta) {
+//
+// embedded says that the note is being rendered to be shown inside another,
+// see embed.go.
+func (r *Renderer) parse(src []byte, from string, forRender, embedded bool) (ast.Node, Meta) {
 	ctx := parser.NewContext(parser.WithIDs(newHeadingIDs()))
 	doc := r.md.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 
@@ -142,6 +152,10 @@ func (r *Renderer) parse(src []byte, from string, forRender bool) (ast.Node, Met
 		}
 		return ast.WalkContinue, nil
 	})
+
+	if embedded {
+		meta.needsMermaid = prepareEmbedded(doc) // after the ids were collected: sections are found by them
+	}
 
 	var unresolved []func() // applied after the walk; it must not see the tree change
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -187,9 +201,13 @@ func (r *Renderer) parse(src []byte, from string, forRender bool) (ast.Node, Met
 				return ast.WalkContinue, nil
 			}
 		}
-		if resolved.anchor != "" && !embed {
+		if resolved.anchor != "" { // (true for files without headings, such as images)
 			if target == "" { // [[#Heading]]: in this note
 				resolved.noHeading = !slices.Contains(meta.Headings, resolved.anchor)
+				if embedded {
+					// Shown inside another page, "this note" is elsewhere.
+					resolved.url, _ = r.links.ResolveLink(from, "/"+from)
+				}
 			} else {
 				resolved.noHeading = !r.links.HasHeading(from, target, resolved.anchor)
 			}
@@ -200,6 +218,15 @@ func (r *Renderer) parse(src []byte, from string, forRender bool) (ast.Node, Met
 			// which note the link stands in.
 			if embed {
 				resolved.embed = r.links.ResolveEmbed(from, target)
+			}
+			if resolved.embed.Note != "" {
+				unresolved = append(unresolved, func() {
+					if r.transclude(wiki, &resolved, from, embedded) {
+						meta.needsMermaid = true
+					}
+					wiki.SetAttribute(resolvedAttr, resolved) // still there if it stayed a link
+				})
+				return ast.WalkContinue, nil
 			}
 			wiki.SetAttribute(resolvedAttr, resolved)
 		case image != nil:
@@ -220,12 +247,24 @@ func (r *Renderer) parse(src []byte, from string, forRender bool) (ast.Node, Met
 	for _, mark := range unresolved {
 		mark()
 	}
+	if meta.needsMermaid && !embedded && !hasMermaidScript(doc) {
+		doc.AppendChild(doc, &mermaid.ScriptBlock{}) // once per page, for the diagrams of embedded notes
+	}
 	delete(tags, "")
 	for tag := range tags {
 		meta.Tags = append(meta.Tags, tag)
 	}
 	sort.Strings(meta.Tags)
 	return doc, meta
+}
+
+func hasMermaidScript(doc ast.Node) bool {
+	for c := doc.FirstChild(); c != nil; c = c.NextSibling() {
+		if _, ok := c.(*mermaid.ScriptBlock); ok {
+			return true
+		}
+	}
+	return false
 }
 
 // propertyWikilink finds [[Target]], [[Target|label]] and [[Target#heading]]

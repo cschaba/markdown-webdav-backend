@@ -31,7 +31,8 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Syntax highlighting | works |
 | Excalidraw drawings | works through the plugin's exported picture, see below |
 | Obsidian "Bases" (`.base` files) | not started |
-| Callouts, note embeds (`![[Note]]`), `==highlight==`, `%%comments%%` | not started |
+| Note embeds, `![[Note]]` and `![[Note#Heading]]` | works, one level deep |
+| Callouts, block references (`#^id`), `==highlight==`, `%%comments%%` | not started |
 | Search | works: words, phrases, `tag:`, `path:` and Obsidian's task operators, ranked by how well a note matches |
 | Search history | works: the last 10 searches, in a cookie, with a way to clear them |
 | Live results while typing, highlighted matches, history view in the browser | not started |
@@ -136,6 +137,27 @@ A path that says where to look is followed strictly: if nothing is there, the
 link is marked missing rather than quietly pointed at a namesake elsewhere. A
 bare name does fall back to the whole vault, which is how Obsidian writes links
 and what existing notes rely on.
+
+## Embedded notes
+
+`![[Note]]` shows another note in place, the way `![[image.png]]` shows an
+image; `![[Note#Heading]]` shows that heading and what is below it, up to the
+next heading of the same level. The embed appears in a box under the note's
+title, which links to the note. Its front matter is not shown.
+
+- Links and images inside the embedded note are resolved from *its* folder, so
+  they lead where they lead on its own page.
+- Embedding goes **one level deep**: a note embed inside an embedded note is a
+  link, with a tooltip saying so. On that note's own page it is an embed again.
+- Headings inside an embed have no anchors, so they cannot collide with the
+  page's own; a link to "a heading of this note" inside the embed leads to the
+  embedded note's page.
+- Diagrams in an embedded note are drawn; the page loads the script once.
+- It stays a link when the heading does not exist, when a note embeds itself,
+  and where a block has no place (inside emphasis, a table cell, a link text).
+  A note that does not exist is marked missing, like any broken link.
+
+An embed counts as a link: it shows up in the backlinks and the graph.
 
 ## Search
 

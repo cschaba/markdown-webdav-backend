@@ -112,6 +112,13 @@ details.fold > summary:hover::before { opacity: 1; }
 details.fold > summary > :is(h1, h2, h3, h4, h5, h6) { margin: 0; }
 details.fold:not([open]) > summary > * { color: var(--muted); }
 
+/* A note shown inside another, ![[Note]]. */
+.transclusion { margin: 1rem 0; padding: 2px 16px 6px; border-left: 3px solid var(--line); background: var(--soft); border-radius: 0 6px 6px 0; }
+.transclusion-title { margin: 8px 0 0; font-size: 0.8rem; color: var(--muted); }
+.transclusion-title a { color: inherit; }
+.transclusion pre, .transclusion :not(pre) > code { background: var(--bg); }
+li > .transclusion { margin: 4px 0; }
+a.not-embedded { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
 /* The note exists, the heading it points at does not: still a link. */
 a.missing-heading { text-decoration: underline dashed; text-underline-offset: 3px; }
 /* A link or embed whose file is not in the vault. */

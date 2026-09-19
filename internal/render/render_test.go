@@ -1,7 +1,9 @@
 package render
 
 import (
+	"io/fs"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -15,10 +17,25 @@ func (f fakeLinks) ResolveLink(from, target string) (string, bool) {
 
 // Notes called "My Note" have the headings a test says they have; others any.
 func (f fakeLinks) HasHeading(from, target, id string) bool {
+	if src, ok := f["src:"+target+".md"]; ok { // a note with a source has the headings it has
+		return slices.Contains(New(f, "").Meta([]byte(src)).Headings, id)
+	}
 	return target != "My Note" || id == "some-heading"
 }
 
+// A note's source is kept under "src:<path>"; having one makes it embeddable.
+func (f fakeLinks) ReadNote(vaultPath string) ([]byte, error) {
+	src, ok := f["src:"+vaultPath]
+	if !ok {
+		return nil, fs.ErrNotExist
+	}
+	return []byte(src), nil
+}
+
 func (f fakeLinks) ResolveEmbed(from, target string) Embed {
+	if _, ok := f["src:"+target+".md"]; ok {
+		return Embed{Note: target + ".md", Title: target}
+	}
 	switch {
 	case IsImage(target):
 		return Embed{Image: f[target]}
@@ -198,6 +215,7 @@ func (r recordingLinks) ResolveLink(from, target string) (string, bool) {
 	return "/found", true
 }
 func (r recordingLinks) HasHeading(from, target, id string) bool { return true }
+func (r recordingLinks) ReadNote(string) ([]byte, error)         { return nil, fs.ErrNotExist }
 func (r recordingLinks) ResolveEmbed(from, target string) Embed {
 	*r.asked = append(*r.asked, from+" => "+target)
 	return Embed{Image: "/found.png"}

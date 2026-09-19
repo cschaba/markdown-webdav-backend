@@ -90,6 +90,7 @@ type resolvedLink struct {
 	anchor    string // id of the heading to land on, "" for none
 	noHeading bool   // the note exists, a heading with that id does not
 	embed     Embed
+	reason    string // why a note embed stayed a link, if there is a reason to give
 }
 
 func (l resolvedLink) href() string {
@@ -123,6 +124,7 @@ var resolvedAttr = []byte("data-resolved")
 type linkRenderer struct{}
 
 func (r linkRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
+	registerTransclusion(reg)
 	reg.Register(wikilink.Kind, r.wikilink)
 	reg.Register(kindMissing, r.missing)
 }
@@ -158,6 +160,8 @@ func (r linkRenderer) wikilink(w util.BufWriter, src []byte, node ast.Node, ente
 		_, _ = w.WriteString(`<a href="` + href + `"`)
 		if resolved.noHeading {
 			_, _ = w.WriteString(` class="` + noHeadingClass + `" title="` + noHeadingTitle + `"`)
+		} else if resolved.reason != "" {
+			_, _ = w.WriteString(` class="not-embedded" title="` + resolved.reason + `"`)
 		}
 		_, _ = w.WriteString(">")
 		n.SetAttribute(closeTag, []byte("</a>"))

@@ -272,6 +272,48 @@ func TestFixtureVault(t *testing.T) {
 		}
 	}
 
+	// Embedded notes.
+	embeds := body("/test/09%20Embedded%20notes")
+	_, embeds, _ = strings.Cut(embeds, "<article>")
+	embeds, _, _ = strings.Cut(embeds, "<aside>")
+	expect("09 Embedded notes", embeds, []string{
+		// the whole note, under its title, without its front matter
+		`<div class="transclusion-title"><a href="/test/embeds/Recipe">Pancakes</a></div>`,
+		`<p>Whisk <strong>250 g flour</strong>`, `<li>Fry in butter.</li>`,
+		// its links and images are resolved from where it lives, the host's from the root
+		`in <code>embeds/</code> — <a href="/test/embeds/Twin">Twin</a>`, `<img src="/test/links/dot.png" width="24">`,
+		`is another note: <a href="/test/Twin">Twin</a>`,
+		// one section: the first "Notes" with its subsection, not the second, not the rest
+		`<a href="/test/links/Chapters#notes">Chapters &gt; Notes</a></div>`, "The first of two headings", "Below the first",
+		// text around an embed, and an embed in a list
+		"<p>Text before </p>", "<p> and text after: the paragraph is cut in two around\nthe embed.</p>", "<li>In a list item: ",
+		// one level: Menu is embedded, the Recipe inside it is a link saying why
+		`<a href="/test/embeds/Menu">Menu</a></div>`,
+		`<a href="/test/embeds/Recipe" class="not-embedded" title="Not embedded here: notes are embedded one level deep">Recipe</a>`,
+		// what stays a link
+		`<a href="/test/links/Chapters#no-such-heading" class="missing-heading"`,
+		`class="not-embedded" title="Not embedded: a note cannot embed itself">09 Embedded notes</a>`,
+		`<span class="missing missing-embed" title="Not found in this vault: No such note">`,
+		`<em><a href="/test/embeds/Twin">embeds/Twin</a></em>`,
+		`as ever: <a href="/test/embeds/Recipe">embeds/Recipe</a>`,
+	}, []string{"kitchen", "The second one", "Markup in a heading", "<p><div", "<p></p>"})
+	if n := strings.Count(embeds, `<div class="transclusion">`); n != 6 {
+		t.Errorf("09: %d embeds, want 6 (Recipe, Chapters#Notes, Twin twice, Flow, Menu)", n)
+	}
+	if n := strings.Count(embeds, "Whisk"); n != 1 {
+		t.Errorf("09: the recipe is shown %d times; inside Menu it must be a link", n)
+	}
+	if strings.Count(embeds, "mermaid.min.js") != 1 || strings.Count(embeds, `<pre class="mermaid">`) != 1 {
+		t.Error("09: the embedded diagram needs the script, once")
+	}
+	// the page's own heading ids are its own: nothing embedded brought an id along
+	if ids := regexp.MustCompile(` id="([^"]*)"`).FindAllStringSubmatch(embeds, -1); len(ids) != 7 {
+		t.Errorf("09: %d ids on the page, want its own 7 headings: %v", len(ids), ids)
+	}
+	// On its own page Menu does embed the recipe, and an embed counts as a link.
+	expect("Menu's own page", body("/test/embeds/Menu"), []string{`<div class="transclusion">`, "Whisk"}, nil)
+	expect("backlinks of the recipe", aside(body("/test/embeds/Recipe")), []string{"09 Embedded notes.md", "embeds/Menu.md", "embeds/Twin.md"}, nil)
+
 	// Search. Every page has the box; the results come best match first.
 	expect("search box", index, []string{`<form class="search" action="/test/-/search" role="search">`, `name="q" value=""`}, nil)
 	// rows cuts the result list into its rows and picks three things out of
@@ -385,7 +427,7 @@ func TestFixtureVault(t *testing.T) {
 	expect("v1.2 plan", body("/test/v1.2%20plan"), []string{"this body text must still render"}, nil)
 
 	tags := regexp.MustCompile(`<[^>]+>`).ReplaceAllString(body("/test/-/tags"), "")
-	expect("tags", tags, []string{"#test 9", "#test/links 2", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
+	expect("tags", tags, []string{"#test 10", "#test/links 2", "#test/embeds 1", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
 	expect("tag page", body("/test/-/tag/test"), []string{"01 Formatting.md", "02 Code and Diagrams.md", "sub/03 Nested.md", "00 Index.md"}, []string{"v1.2"})
 	expect("unicode tag", body("/test/-/tag/%C3%BCberpr%C3%BCfung"), []string{"00 Index.md"}, nil)
 

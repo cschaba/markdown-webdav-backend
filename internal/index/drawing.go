@@ -1,7 +1,10 @@
 package index
 
 import (
+	"io/fs"
+	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"markdown-webdav-backend/internal/render"
@@ -93,5 +96,17 @@ func (idx *Index) ResolveEmbed(from, target string) render.Embed {
 		embed.Image, embed.DarkImage = idx.DrawingImages(p)
 		return embed
 	}
+	if note := idx.Note(p); note != nil {
+		return render.Embed{Note: note.Path, Title: note.Title}
+	}
 	return render.Embed{}
+}
+
+// ReadNote implements render.LinkResolver. Only what the index knows as a note
+// is read: the path comes out of ResolveEmbed, but nothing forces a caller.
+func (idx *Index) ReadNote(vaultPath string) ([]byte, error) {
+	if idx.Note(vaultPath) == nil {
+		return nil, fs.ErrNotExist
+	}
+	return os.ReadFile(filepath.Join(idx.root, filepath.FromSlash(vaultPath)))
 }

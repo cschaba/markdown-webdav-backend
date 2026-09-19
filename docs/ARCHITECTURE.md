@@ -90,6 +90,19 @@ each note's heading ids, which is what lets a link to a heading that is not
 there be marked instead of failing silently. Block references (`#^id`) lead to
 the note: rendered pages carry no block ids yet.
 
+**An embedded note is rendered as itself, then placed.** `![[Note]]` runs the
+same renderer on the other note with that note's path, so everything inside it
+— links, images, tags — means what it means on its own page; only then is the
+HTML put where the wikilink stood. Rendering it "as part of the host" would
+have resolved its links from the host's folder, which the link rules make
+wrong. A wikilink is an inline node inside a paragraph, and a note's content
+cannot be inside a paragraph, so the paragraph is cut in two around it. A
+section embed needs no code of its own: a heading with what is below it is
+exactly the section that foldable headings already build. Embedding is one
+level deep by decision; that keeps pages predictable and rules out loops
+without tracking a chain. Embedded headings lose their ids so the host's
+anchors stay unambiguous.
+
 **Private, single user.** One basic-auth login in front of everything. This is
 what makes it acceptable to skip per-note publishing rules. Even so, raw HTML is
 off and attachments are sandboxed, because notes and files get pasted in from

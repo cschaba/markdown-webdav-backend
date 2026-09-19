@@ -289,3 +289,38 @@ func TestHasHeading(t *testing.T) {
 		t.Error("headings not updated with the note")
 	}
 }
+
+func TestResolveEmbedAndReadNote(t *testing.T) {
+	root := writeVault(t, map[string]string{
+		"area/Note.md":         "---\ntitle: A title\n---\nbody",
+		"area/pic.png":         "",
+		"area/data.csv":        "a,b",
+		"Sketch.excalidraw.md": "---\nexcalidraw-plugin: parsed\n---\n",
+		".obsidian/secret.md":  "hidden",
+	})
+	idx := New(root, "/v")
+	if err := idx.Rebuild(); err != nil {
+		t.Fatal(err)
+	}
+	if got := idx.ResolveEmbed("area/Other.md", "Note"); got.Note != "area/Note.md" || got.Title != "A title" || got.Image != "" {
+		t.Errorf("a note: %+v", got)
+	}
+	if got := idx.ResolveEmbed("area/Other.md", "pic.png"); got.Image != "/v/area/pic.png" || got.Note != "" {
+		t.Errorf("an image: %+v", got)
+	}
+	if got := idx.ResolveEmbed("", "Sketch.excalidraw"); !got.Drawing || got.Note != "" {
+		t.Errorf("a drawing is shown through its picture, not as Markdown: %+v", got)
+	}
+	if got := idx.ResolveEmbed("", "area/data.csv"); got.Note != "" || got.Image != "" {
+		t.Errorf("another file is linked: %+v", got)
+	}
+	if src, err := idx.ReadNote("area/Note.md"); err != nil || !strings.Contains(string(src), "body") {
+		t.Errorf("ReadNote: %q, %v", src, err)
+	}
+	// only notes of the vault, whatever path is asked for
+	for _, p := range []string{"area/data.csv", "../outside.md", "/etc/passwd", ".obsidian/secret.md", "area/Missing.md", ""} {
+		if src, err := idx.ReadNote(p); err == nil {
+			t.Errorf("ReadNote(%q) returned %q", p, src)
+		}
+	}
+}
