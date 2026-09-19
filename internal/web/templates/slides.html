@@ -25,7 +25,7 @@
 <div class="keys-table"></div>
 <p class="hint">Click the right half of a slide to go on, the left half to go back; swipe on a touch screen. The letter keys follow the switch in the keyboard help of the other pages.</p>
 </dialog>
-{{if .Mermaid}}<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script><script>mermaid.initialize({startOnLoad: false});</script>
+{{if .Mermaid}}{{mermaidScript}}
 {{end}}<script src="/-/slides.js"></script>
 </body>
 </html>

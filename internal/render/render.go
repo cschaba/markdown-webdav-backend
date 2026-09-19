@@ -94,6 +94,7 @@ func New(links LinkResolver, tagURL string) *Renderer {
 			// Client-side: server-side rendering would need a headless
 			// browser in the image.
 			&mermaid.Extender{RenderMode: mermaid.RenderModeClient},
+			scriptExtender{}, // after it: replaces its script element, see scripts.go
 			highlighting.NewHighlighting(
 				highlighting.WithFormatOptions(chromahtml.WithClasses(true)),
 			),

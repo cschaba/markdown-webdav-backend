@@ -12,7 +12,8 @@ Generic cross-project lessons: `~/AI-Memory/README.md`.
 
 | Path | Owns |
 |---|---|
-| `main.go` | flags, auth, and `mount`: per vault, a WebDAV change updates the index and arms the committer |
+| `auth.go` | the login and its throttle, the headers every response carries, the sandbox around WebDAV |
+| `main.go` | flags and `mount`: per vault, a WebDAV change updates the index and arms the committer |
 | `vaults.go` | parsing of `-vault [name=]dir[,nogit]` |
 | `testdata/vault` | the test vault: one page per feature, rendered by `internal/web/fixture_test.go` |
 | `internal/vault` | `webdav.FileSystem` wrapper: reports changes, hides `.git` |
@@ -61,8 +62,17 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
   `internal/web/fixture_test.go`. A test fails for a page the index omits. Never put test pages into a real
   vault. Always serve the test vault with `,nogit`: it lies inside this
   repository, and a second `.git` in there would break both.
-- **The web view reads files only through `os.Root`** (`web.Handler.root`), which
-  is what stops `..` and symlinks from leaving the vault. Do not add `os.Open`.
+- **Files of a vault are opened only through `os.Root`** — the web view
+  (`web.Handler.root`), the index (`Index.file`) and WebDAV (`vault.FS`). It is
+  what stops `..` and symlinks from leaving the vault. Do not add `os.Open`,
+  `os.ReadFile` or `filepath.Join(root, …)`; an embed and the search once read
+  through a symlink that way, while the page itself refused it.
+- **No inline `<script>`, and no script from elsewhere without version and
+  hash** (`internal/render/scripts.go`). The pages' Content-Security-Policy
+  refuses both, silently as far as Go tests can tell, except
+  `TestPagesCarryAPolicy`. After touching the policy, a template's scripts or a
+  CDN version, run `tools/check-security.mjs`: only a browser shows a diagram
+  that no longer draws.
 - **Anything starting with a dot is invisible to the web view and the index;**
   `.git` is additionally invisible to WebDAV. Keep both when adding routes.
 - Raw HTML in notes stays disabled, and attachments are served with

@@ -80,6 +80,7 @@ func (h *Handler) slides(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Security-Policy", contentSecurityPolicy)
 	_, _ = w.Write([]byte(buf.String()))
 }
 

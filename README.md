@@ -88,7 +88,30 @@ With Docker, see [compose.yaml](compose.yaml); it reads the password from a
 secret file instead of the environment.
 
 Basic auth sends the password with every request. Anywhere but localhost, put a
-TLS-terminating reverse proxy in front.
+TLS-terminating reverse proxy in front — and without one, listen on
+`127.0.0.1:8080` rather than the default, which is every interface.
+
+### Security
+
+One password is all that stands in front of the notes, so choose a long random
+one. What the server does around it:
+
+- **Guessing is slow.** After 10 wrong passwords within a minute an address is
+  refused for five minutes (`429`), the right password included. Behind a
+  reverse proxy the address is the last entry of `X-Forwarded-For`, which the
+  proxy wrote; it is believed only from a peer on this machine or a private
+  network.
+- **Nothing synced in runs as a page.** Raw HTML in notes is off. Attachments
+  that can carry script are served sandboxed, and so is everything WebDAV
+  answers to a browser. Pages carry a Content-Security-Policy that allows our
+  own scripts and two from a CDN (Mermaid, the graph library), each pinned to
+  one version with a hash the browser checks; no inline script.
+- **No way out of the vault.** Files are opened through `os.Root`, by the web
+  view, the index and WebDAV alike: `..` and symbolic links that lead out of
+  the vault are not followed. `.git` cannot be reached over WebDAV, however it
+  is spelled.
+- Pages cannot be framed by another site, and a link out of a note does not
+  tell the other site where it came from.
 
 | Flag | Environment | Default | |
 |---|---|---|---|

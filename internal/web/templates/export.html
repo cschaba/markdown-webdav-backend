@@ -26,7 +26,7 @@
 {{.HTML}}</div></section>
 {{else}}<p class="empty">There is nothing to export here.</p>
 {{end}}</main>
-{{if .Mermaid}}<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script><script>mermaid.initialize({startOnLoad: false});</script>
+{{if .Mermaid}}{{mermaidScript}}
 {{end}}<script src="/-/slides.js"></script>
 {{else}}<main class="paper" style="width: {{.Size.W}}mm; padding: {{.Size.Top}}mm {{.Size.Side}}mm {{.Size.Bottom}}mm;">
 <div class="paper-content" id="paper-content">

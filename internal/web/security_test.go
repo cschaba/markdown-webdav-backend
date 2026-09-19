@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"markdown-webdav-backend/internal/render"
 )
 
 // A symbolic link in the vault that leads out of it shows nothing of what it
@@ -37,5 +39,35 @@ func TestSymlinksDoNotLeaveTheVault(t *testing.T) {
 	}
 	if body, _ := io.ReadAll(get("/v/Host").Body); !strings.Contains(string(body), "zeppelin-inside") {
 		t.Errorf("a link that stays in the vault should still be embedded:\n%s", body)
+	}
+}
+
+func TestPagesCarryAPolicy(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(filepath.Join(dir, "Note.md"), []byte("```mermaid\ngraph TD; A-->B\n```\n\n---\n\nsecond\n"), 0o644)
+	get := serve(t, "v", dir)
+	for _, p := range []string{"/v/", "/v/Note", "/v/-/tags", "/v/-/search?q=x", "/v/-/graph", "/v/-/export?path=Note.md", "/v/-/slides?path=Note.md", "/v/-/export?path=Note.md&format=slides"} {
+		res := get(p)
+		body, _ := io.ReadAll(res.Body)
+		csp := res.Header.Get("Content-Security-Policy")
+		if !strings.Contains(csp, "script-src 'self' https://") || strings.Contains(strings.SplitN(csp, "style-src", 2)[0], "unsafe-inline") {
+			t.Errorf("%s: policy %q", p, csp)
+		}
+		// The policy allows no inline script, so a page must not rely on one:
+		// it would silently not run, and only a browser would show it.
+		for _, tag := range strings.Split(string(body), "<script")[1:] {
+			if !strings.HasPrefix(tag, ` src="`) {
+				t.Errorf("%s has an inline script: <script%.80s", p, tag)
+			}
+			if strings.HasPrefix(tag, ` src="http`) && !strings.Contains(strings.SplitN(tag, ">", 2)[0], `integrity="sha384-`) {
+				t.Errorf("%s loads a script from elsewhere without a hash: <script%.120s", p, tag)
+			}
+		}
+	}
+	// every script from elsewhere names its version, and is what the policy allows
+	for _, s := range []render.ExternalScript{render.MermaidScript, render.ForceGraphScript} {
+		if !strings.Contains(s.URL, "@") || !strings.Contains(contentSecurityPolicy, s.URL) {
+			t.Errorf("%s: no version, or not in the policy", s.URL)
+		}
 	}
 }

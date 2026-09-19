@@ -153,6 +153,24 @@ what makes it acceptable to skip per-note publishing rules. Even so, raw HTML is
 off and attachments are sandboxed, because notes and files get pasted in from
 anywhere and the origin carries the owner's credentials.
 
+**A page can write to the vault, so what runs on a page is the security
+boundary.** WebDAV is on the same origin as the rendered notes, under the same
+login: a script on any page can `PUT` and `DELETE`. Other sites cannot (a
+cross-site `PUT` needs a preflight, which gets a 401), so everything hangs on
+no foreign script running here. Three layers: the renderer emits no raw HTML;
+files that could be a page are served sandboxed, on WebDAV's `GET` too; and a
+Content-Security-Policy without inline script catches what an escaping bug
+would let through. The two CDN scripts are allowed by their exact URL, not by
+host — jsDelivr serves every npm package, so the host would allow anything —
+and carry a hash (`internal/render/scripts.go`). The policy is on pages only:
+on a PDF it would stop the browser's viewer.
+
+**The login throttle counts per address and refuses the right password too.**
+Refusing only wrong ones would limit nothing: the attacker's one right guess
+would still be answered. The price is that a guesser can lock out whoever
+shares their address, which is why the address behind a proxy is taken from
+`X-Forwarded-For` — its last entry, the only one the client cannot make up.
+
 **Excalidraw drawings are shown through the plugin's own export.** The Obsidian
 plugin can write `Name.excalidraw.svg` beside every drawing, produced by
 Excalidraw itself. Showing that file is exact (fonts, embedded images, LaTeX,
@@ -238,9 +256,9 @@ the panel, ignores unlinked notes, and stops zooming in on a tiny vault), and
 unlimited repulsion (which flings unlinked notes far away).
 
 **Mermaid renders in the browser.** Server-side rendering needs a headless
-browser in the image. The page currently loads mermaid.js from jsDelivr, which
-is the one request leaving the server; embedding the script is the fix if that
-matters.
+browser in the image. The page loads mermaid.js from jsDelivr, one version with
+its hash; at 5 MB it is not embedded in the binary. Serving a copy from the
+vault's host is the fix if requests to a CDN matter.
 
 ## Known gaps
 

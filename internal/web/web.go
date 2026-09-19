@@ -22,10 +22,33 @@ import (
 	"markdown-webdav-backend/internal/render"
 )
 
-//go:embed templates/*.html static/style.css static/graph.js static/print.js static/keys.js static/slides.js
+//go:embed templates/*.html static/style.css static/graph.js static/print.js static/keys.js static/slides.js static/mermaid-start.js
 var assets embed.FS
 
-var templates = template.Must(template.ParseFS(assets, "templates/*.html"))
+var templates = template.Must(template.New("").Funcs(template.FuncMap{
+	"mermaidScript":    render.MermaidScript.Tag,
+	"forceGraphScript": render.ForceGraphScript.Tag,
+}).ParseFS(assets, "templates/*.html"))
+
+// contentSecurityPolicy is sent with every page. A page runs with the owner's
+// login and can write to the vault over WebDAV, so it matters what may run on
+// it: our own files and the two pinned scripts, by their exact URL - the CDN
+// as a whole would allow any package anyone has published there. No inline
+// script, which is what is left of an escaping bug in the renderer: text that
+// comes out as HTML after all does not run. Styles may be inline, Mermaid
+// writes them; pictures and media may come from anywhere, notes embed them.
+var contentSecurityPolicy = strings.Join([]string{
+	"default-src 'none'",
+	"script-src 'self' " + render.MermaidScript.URL + " " + render.ForceGraphScript.URL,
+	"style-src 'self' 'unsafe-inline'",
+	"img-src 'self' data: blob: https: http:",
+	"media-src 'self' data: blob: https: http:",
+	"font-src 'self' data:",
+	"connect-src 'self'",
+	"form-action 'self'",
+	"base-uri 'none'",
+	"frame-ancestors 'none'",
+}, "; ")
 
 // Vault names one vault for the switcher and the start page.
 type Vault struct {
@@ -125,6 +148,7 @@ func writePage(w http.ResponseWriter, name string, p page) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Content-Security-Policy", contentSecurityPolicy)
 	_, _ = w.Write(buf.Bytes())
 }
 
@@ -171,6 +195,11 @@ func Assets() (http.Handler, error) {
 		return nil, err
 	}
 	serve("slides.js", "text/javascript; charset=utf-8", slidesScript)
+	mermaidStart, err := assets.ReadFile("static/mermaid-start.js")
+	if err != nil {
+		return nil, err
+	}
+	serve("mermaid-start.js", "text/javascript; charset=utf-8", mermaidStart)
 	return mux, nil
 }
 

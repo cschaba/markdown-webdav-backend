@@ -36,7 +36,10 @@
     fitAll(); // images and diagrams have their size now
   }
   addEventListener("load", function () {
-    if (window.mermaid && document.querySelector(".mermaid")) mermaid.run().then(measured, measured);
+    if (window.mermaid && document.querySelector(".mermaid")) {
+      mermaid.initialize({ startOnLoad: false }); // here, not in the page: the policy allows no inline script
+      mermaid.run().then(measured, measured);
+    }
     else measured();
   });
   addEventListener("beforeprint", fitAll);
