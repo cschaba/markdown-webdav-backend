@@ -122,6 +122,18 @@ every link to such a note showed a folder listing. Found when the PDF check
 printed a listing instead of a note. The note now has the URL, because links
 lead to notes; folder URLs end in a slash.
 
+**Keyboard support moves the real focus.** A Vim-like "cursor" could have been a
+highlight of our own; instead `j`/`k` on a list and `]]`/`[[` in a note move
+the browser's focus, to links and to the `<summary>` that folds a heading's
+section. That costs nothing and gives the rest for free: Enter opens or folds,
+the focus ring shows the place, a screen reader announces it, and the keys
+compose with Tab instead of fighting it. For links inside running text there is
+no natural order to walk, so `f` labels them, as Vimium does. Single-key
+shortcuts are a known accessibility hazard (dictation types them, screen
+readers have their own), hence the switch WCAG 2.1 asks for, reachable from
+the footer. The list of keys lives once, in the script; the help is made from
+it.
+
 **Private, single user.** One basic-auth login in front of everything. This is
 what makes it acceptable to skip per-note publishing rules. Even so, raw HTML is
 off and attachments are sandboxed, because notes and files get pasted in from
