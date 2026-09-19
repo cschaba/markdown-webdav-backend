@@ -191,12 +191,39 @@ func TestFixtureVault(t *testing.T) {
 
 	// Search. Every page has the box; the results come best match first.
 	expect("search box", index, []string{`<form class="search" action="/test/-/search" role="search">`, `name="q" value=""`}, nil)
+	// rows cuts the result list into its rows and picks three things out of
+	// each, tolerant of whatever else a row holds: badges came and went three
+	// times while this test matched the markup exactly.
+	type row struct{ title, path, percent string }
+	var (
+		rowTitle   = regexp.MustCompile(`<a href="[^"]*">([^<]*)</a>`)
+		rowPath    = regexp.MustCompile(`<small>([^<]*)</small>`)
+		rowPercent = regexp.MustCompile(`>(\d+%)<`)
+	)
+	rows := func(q string) []row {
+		t.Helper()
+		_, list, found := strings.Cut(body("/test/-/search?q="+url.QueryEscape(q)), `<ul class="list results">`)
+		if !found {
+			return nil
+		}
+		list, _, _ = strings.Cut(list, "</ul>")
+		var out []row
+		for _, chunk := range strings.Split(list, "<li>")[1:] {
+			first := func(re *regexp.Regexp) string {
+				if m := re.FindStringSubmatch(chunk); m != nil {
+					return m[1]
+				}
+				return ""
+			}
+			out = append(out, row{first(rowTitle), first(rowPath), first(rowPercent)})
+		}
+		return out
+	}
 	results := func(q string) string {
 		t.Helper()
-		html := body("/test/-/search?q=" + url.QueryEscape(q))
 		var found []string
-		for _, m := range regexp.MustCompile(`<li>(?:<span class="match"[^>]*>[^<]*</span>)?<a href="[^"]*">[^<]*</a> <small>([^<]*)</small>`).FindAllStringSubmatch(html, -1) {
-			found = append(found, m[1])
+		for _, r := range rows(q) {
+			found = append(found, r.path)
 		}
 		return strings.Join(found, " | ")
 	}
@@ -206,8 +233,8 @@ func TestFixtureVault(t *testing.T) {
 	}
 	// ...and with how well each matches, on the fixed scale the page explains.
 	var percents []string
-	for _, m := range regexp.MustCompile(`<span class="match"[^>]*>(\d+%)</span><a href="[^"]*">([^<]*)</a>`).FindAllStringSubmatch(body("/test/-/search?q=zeppelin"), -1) {
-		percents = append(percents, m[2]+" "+m[1])
+	for _, r := range rows("zeppelin") {
+		percents = append(percents, r.title+" "+r.percent)
 	}
 	if got, want := strings.Join(percents, " | "), "Zeppelin 100% | Airships 30% | History 20% | 06 Search 13%"; got != want {
 		t.Errorf("percentages\n got: %s\nwant: %s", got, want)
@@ -236,6 +263,30 @@ func TestFixtureVault(t *testing.T) {
 			t.Errorf("search %q\n got: %s first, of %v\nwant: %s first, of %v", q, first, got, wantFirst, wantSet)
 		}
 	}
+	// Tasks: which notes, in what order, and the tasks themselves as the snippets.
+	tasks := body("/test/-/search?q=" + url.QueryEscape(`task-todo:""`))
+	if got := results(`task-todo:""`); got != "06 Search.md | 01 Formatting.md" {
+		t.Errorf("open tasks: %s", got)
+	}
+	expect("open tasks", tasks, []string{
+		`<span class="match">2 tasks</span>`, `<span class="match">1 task</span>`,
+		`<p class="snippet task"><input type="checkbox" disabled> inflate the zeppelin</p>`,
+		`<input type="checkbox" disabled> check the ballast</p>`, `<input type="checkbox" disabled> open</p>`,
+	}, []string{"moor the zeppelin", "an example, not a task", `title="How well`})
+	if got := results("task-done:zeppelin"); got != "06 Search.md" {
+		t.Errorf("completed tasks: %s", got)
+	}
+	expect("a completed task, and a word beside the operator", body("/test/-/search?q="+url.QueryEscape(`task:"" zeppelin`)), []string{
+		`<input type="checkbox" disabled checked> moor the zeppelin</p>`,
+		`%</span> · 3 tasks</span>`,
+	}, nil)
+	if got := results(`task:""`); got != "06 Search.md | 01 Formatting.md" {
+		t.Errorf("all tasks: %s", got)
+	}
+	if got := results("task-todo:ballast tag:test/missing"); got != "" {
+		t.Errorf("a task filter and a tag filter must both hold: %s", got)
+	}
+
 	expect("search in properties", body("/test/-/search?q=dirigible"),
 		[]string{"1 result for", `<p class="snippet">vessel: dirigible</p>`}, nil)
 	searched := body("/test/-/search?q=" + url.QueryEscape(`"rigid frame"`))

@@ -127,6 +127,12 @@ search in a real vault disproved: three notes with the word in title, tag and
 text showed 100%. Making the best hit 100% was the alternative; it
 would call the top result of a hopeless search a perfect match.
 
+**Task search copies Obsidian's operators** (`task:`, `task-todo:`,
+`task-done:`) instead of inventing syntax, including its rule that any mark but
+a space means "not open". Tasks are found by reading the lines, like the rest
+of the search; nothing about tasks is kept in the index. A pure task query has
+no match quality to speak of, so it shows a count and orders by it.
+
 **The search history is a cookie.** Without a database the server has nowhere
 to keep it, and should not grow a place for the sake of eight strings. The
 server reads and writes the cookie itself (HttpOnly, no script), scoped to the

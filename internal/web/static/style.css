@@ -57,8 +57,10 @@ header .search { position: relative; }
 .results li { padding: 8px 0; }
 .results .match {
   float: right; margin-left: 12px; color: var(--muted); font-size: 0.85rem;
-  font-variant-numeric: tabular-nums; cursor: help;
+  font-variant-numeric: tabular-nums;
 }
+.results .match [title] { cursor: help; }
+.snippet.task input { margin: 0 4px 0 0; vertical-align: -1px; }
 .snippet { margin: 2px 0 0; color: var(--muted); font-size: 0.9rem; overflow-wrap: anywhere; }
 .history { margin-top: 2.5rem; }
 .history h2 { font-size: 1rem; margin-bottom: 8px; }
