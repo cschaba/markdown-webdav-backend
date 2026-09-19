@@ -15,6 +15,9 @@ Generic cross-project lessons: `~/AI-Memory/README.md`.
 | `auth.go` | the login and its throttle, the headers every response carries, the sandbox around WebDAV |
 | `main.go` | flags and `mount`: per vault, a WebDAV change updates the index and arms the committer |
 | `vaults.go` | parsing of `-vault [name=]dir[,nogit]` |
+| `version.go` | the version, written down here and nowhere else |
+| `tools/` | checks that need a real browser (`check-browser.sh` runs them), `release.sh` |
+| `.github/workflows` | `ci.yml`: Go tests and the browser checks; `release.yml`: a tag `v*` builds, tests and publishes the archives |
 | `testdata/vault` | the test vault: one page per feature, rendered by `internal/web/fixture_test.go` |
 | `internal/vault` | `webdav.FileSystem` wrapper: reports changes, hides `.git` |
 | `internal/gitlog` | debounced `git commit`, shells out to `git` |
@@ -27,6 +30,11 @@ Generic cross-project lessons: `~/AI-Memory/README.md`.
 ```sh
 go build ./... && go vet ./... && go test ./...
 gofmt -l .                       # must print nothing
+tools/check-browser.sh           # keys, slides, export settings, the policy - in headless Chromium
+go build && tools/check-pdf-export.sh
+
+# a release: version.go, CHANGELOG.md ([Unreleased] -> the version), commit, push main, then
+tools/release.sh --dry-run && tools/release.sh
 
 # look at the test vault in a browser: http://127.0.0.1:18080/test/
 MDWEBDAV_PASSWORD=secret go run . -listen 127.0.0.1:18080 -vault test=./testdata/vault,nogit
@@ -78,6 +86,11 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
 - Raw HTML in notes stays disabled, and attachments are served with
   `Content-Security-Policy: sandbox`: synced content must not script the origin
   that holds the owner's login.
+- **A change someone running the server would notice gets a line under
+  `[Unreleased]` in `CHANGELOG.md`**, in the same commit. The release notes are
+  cut from it.
+- **An action in a workflow is pinned to a commit hash**, with its version as a
+  comment - the same rule as for the CDN scripts.
 - No database and no cache files. State that cannot be rebuilt from the vault
   does not exist.
 

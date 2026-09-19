@@ -1,5 +1,7 @@
 # Editable Markdown & WebDAV Server
 
+[![CI](https://github.com/cschaba/markdown-webdav-backend/actions/workflows/ci.yml/badge.svg)](https://github.com/cschaba/markdown-webdav-backend/actions/workflows/ci.yml)
+
 One small self-hosted server for vaults of Markdown notes:
 
 - **Sync and edit** the notes from Obsidian on laptop, phone and tablet over WebDAV.
@@ -46,7 +48,10 @@ What the first day of building this cost in time and tokens is recorded in
 
 ## Run it
 
-Needs Go and git.
+Needs git, which does the versioning. A release is an archive with the binary
+for Linux or macOS, from the
+[Releases](https://github.com/cschaba/markdown-webdav-backend/releases) page;
+`SHA256SUMS` beside it has the checksums. Or build it, with Go:
 
 ```sh
 go build
@@ -394,3 +399,11 @@ first start keeps client litter (`.DS_Store`, `._*`, `.trash/`, Obsidian
 workspace state) out of the history; edit it freely.
 
 If a commit fails, every rendered page shows a warning until one succeeds.
+
+## Versions and licence
+
+`markdown-webdav-backend -version` prints the version; what changed between
+versions is in [CHANGELOG.md](CHANGELOG.md). Before 1.0 a minor version may
+change flags, URLs or behaviour.
+
+[MIT](LICENSE).
