@@ -112,6 +112,8 @@ details.fold > summary:hover::before { opacity: 1; }
 details.fold > summary > :is(h1, h2, h3, h4, h5, h6) { margin: 0; }
 details.fold:not([open]) > summary > * { color: var(--muted); }
 
+/* The note exists, the heading it points at does not: still a link. */
+a.missing-heading { text-decoration: underline dashed; text-underline-offset: 3px; }
 /* A link or embed whose file is not in the vault. */
 .missing { color: var(--muted); text-decoration: underline dashed; text-underline-offset: 3px; cursor: help; }
 .missing-embed {

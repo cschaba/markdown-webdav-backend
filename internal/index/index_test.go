@@ -254,3 +254,38 @@ func TestResolveFromTheLinkingNote(t *testing.T) {
 		t.Error("graph resolved [[Twin]] vault-wide instead of next to the note")
 	}
 }
+
+func TestHasHeading(t *testing.T) {
+	root := writeVault(t, map[string]string{
+		"Book.md":      "# Überblick\n\n## Notes\n\n## Notes\n",
+		"area/Page.md": "",
+		"pic.png":      "",
+	})
+	idx := New(root, "")
+	if err := idx.Rebuild(); err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(idx.Note("Book.md").Headings, " "); got != "überblick notes notes-1" {
+		t.Errorf("headings = %q", got)
+	}
+	for _, tc := range []struct {
+		from, target, id string
+		want             bool
+	}{
+		{"area/Page.md", "Book", "überblick", true},
+		{"area/Page.md", "../Book", "notes-1", true},
+		{"area/Page.md", "Book", "nope", false},
+		{"area/Page.md", "./Book", "überblick", true}, // no Book there: nothing to check a heading against
+		{"area/Page.md", "pic.png", "anything", true}, // not a note
+	} {
+		if got := idx.HasHeading(tc.from, tc.target, tc.id); got != tc.want {
+			t.Errorf("HasHeading(%q, %q, %q) = %v", tc.from, tc.target, tc.id, got)
+		}
+	}
+	// a heading added later is known after the write
+	writeFile(t, root, "Book.md", "# New\n")
+	idx.Update("Book.md")
+	if !idx.HasHeading("", "Book", "new") || idx.HasHeading("", "Book", "notes") {
+		t.Error("headings not updated with the note")
+	}
+}

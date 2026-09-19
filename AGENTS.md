@@ -79,6 +79,12 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
   which note it is rendering; the result travels on the node. what has no file behind it is replaced by a `missing` node
   and shows as a dashed "missing" marker, never as a dead link or a
   broken-image icon. A missing target still goes into `Meta.Links`.
+- Heading anchors (`internal/render/headings.go`): `Slug` is the *only* place
+  that turns a heading into an id. The parser gets it for the headings, links
+  apply it to their fragment. goldmark's default ids drop every non-ASCII
+  character, and a second function "approximating" them is how
+  `[[Note#Überblick]]` ended up pointing nowhere. `Meta.Headings` lets a link be
+  checked against the note it points into.
 - Foldable headings (`internal/render/fold.go`) are an AST transformer that
   nests top-level blocks into `<details open>` sections. Anything another
   extension appends to the document for the whole note (footnotes, the Mermaid

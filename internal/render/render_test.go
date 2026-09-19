@@ -13,6 +13,11 @@ func (f fakeLinks) ResolveLink(from, target string) (string, bool) {
 	return url, ok
 }
 
+// Notes called "My Note" have the headings a test says they have; others any.
+func (f fakeLinks) HasHeading(from, target, id string) bool {
+	return target != "My Note" || id == "some-heading"
+}
+
 func (f fakeLinks) ResolveEmbed(from, target string) Embed {
 	switch {
 	case IsImage(target):
@@ -192,6 +197,7 @@ func (r recordingLinks) ResolveLink(from, target string) (string, bool) {
 	*r.asked = append(*r.asked, from+" -> "+target)
 	return "/found", true
 }
+func (r recordingLinks) HasHeading(from, target, id string) bool { return true }
 func (r recordingLinks) ResolveEmbed(from, target string) Embed {
 	*r.asked = append(*r.asked, from+" => "+target)
 	return Embed{Image: "/found.png"}

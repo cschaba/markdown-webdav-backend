@@ -86,8 +86,36 @@ func (linkExtender) Extend(md goldmark.Markdown) {
 // resolvedLink is what Renderer.parse found out about a wikilink. It travels
 // on the node, because a node renderer is not told which note it is rendering.
 type resolvedLink struct {
-	url   string
-	embed Embed
+	url       string
+	anchor    string // id of the heading to land on, "" for none
+	noHeading bool   // the note exists, a heading with that id does not
+	embed     Embed
+}
+
+func (l resolvedLink) href() string {
+	if l.anchor == "" {
+		return l.url
+	}
+	return l.url + "#" + l.anchor
+}
+
+// A link to a heading that is not there still leads to the note, as in
+// Obsidian, but says so.
+const (
+	noHeadingClass = "missing-heading"
+	noHeadingTitle = "The note has no heading of this name"
+)
+
+// wikiTarget returns what a wikilink points at: the file, and the heading or
+// block in it. The parser splits at the last "#", which takes
+// [[Note#Chapter#Section]] for a file called "Note#Chapter".
+func wikiTarget(n *wikilink.Node) (target, fragment string) {
+	full := string(n.Target)
+	if n.Fragment != nil {
+		full += "#" + string(n.Fragment)
+	}
+	target, fragment, _ = strings.Cut(full, "#")
+	return strings.TrimSpace(target), fragment
 }
 
 var resolvedAttr = []byte("data-resolved")
@@ -117,11 +145,8 @@ func (r linkRenderer) wikilink(w util.BufWriter, src []byte, node ast.Node, ente
 	if v, ok := n.Attribute(resolvedAttr); ok {
 		resolved = v.(resolvedLink)
 	}
-	dest, embed := resolved.url, resolved.embed
-	if len(n.Fragment) > 0 {
-		dest += "#" + headingID(string(n.Fragment))
-	}
-	href := string(util.EscapeHTML([]byte(dest)))
+	embed := resolved.embed
+	href := string(util.EscapeHTML([]byte(resolved.href())))
 	switch {
 	case embed.Image == "" && embed.Drawing:
 		// The server does not draw Excalidraw scenes itself; say what is
@@ -130,8 +155,23 @@ func (r linkRenderer) wikilink(w util.BufWriter, src []byte, node ast.Node, ente
 		n.SetAttribute(closeTag, []byte("</a>"))
 		return ast.WalkContinue, nil
 	case embed.Image == "":
-		_, _ = w.WriteString(`<a href="` + href + `">`)
+		_, _ = w.WriteString(`<a href="` + href + `"`)
+		if resolved.noHeading {
+			_, _ = w.WriteString(` class="` + noHeadingClass + `" title="` + noHeadingTitle + `"`)
+		}
+		_, _ = w.WriteString(">")
 		n.SetAttribute(closeTag, []byte("</a>"))
+		// Without an alias Obsidian shows "Note > Heading" rather than the
+		// link as typed, and just "Heading" for a heading of the same note.
+		target, fragment := wikiTarget(n)
+		if typed := string(labelOf(n, src)); fragment != "" && typed == strings.TrimSpace(string(n.Target))+"#"+string(n.Fragment) {
+			parts := strings.Split(fragment, "#")
+			if target != "" {
+				parts = append([]string{target}, parts...)
+			}
+			_, _ = w.Write(util.EscapeHTML([]byte(strings.Join(parts, " > "))))
+			return ast.WalkSkipChildren, nil
+		}
 		return ast.WalkContinue, nil
 	}
 
