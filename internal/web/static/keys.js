@@ -188,6 +188,7 @@
     { keys: "gt", does: "Go to the tags", run: function () { go('header nav a[href$="/-/tags"]'); } },
     { keys: "gr", does: "Go to the graph", run: function () { go('header nav a[href$="/-/graph"]'); } },
     { keys: "gp", does: "Go to the PDF export of this page", run: function () { go('footer a[href*="/-/export"]'); } },
+    { keys: "gs", does: "Go to the slide show of this note, if it has slides", run: function () { go('footer a[href*="/-/slides"]'); } },
     { keys: "Tab", does: "The browser's own way from link to link; Shift+Tab goes back" },
 
     { group: "Scrolling" },

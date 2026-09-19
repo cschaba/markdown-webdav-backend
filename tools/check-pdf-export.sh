@@ -99,6 +99,35 @@ pdf folder "$base/-/export?path=10%20Printing" && {
 pdf folder-sub "$base/-/export?path=10%20Printing&sub=1" &&
     contains "with its subfolders when asked" "$(pdftotext "$out/folder-sub.pdf" -)" "A note in a subfolder"
 
+echo "--- slides: one slide a page, landscape"
+deck="12%20Slides.md"
+pdf slides "$base/-/export?path=$deck&format=slides" && {
+    expect "16:9 page" "$(size slides)" "960x540"
+    expect "a page a slide" "$(pages slides)" "8"
+    contains "slide 1" "$(page slides 1)" "A deck of slides"
+    contains "slide 2" "$(page slides 2)" "How it works"
+    contains "slide 8" "$(page slides 8)" "The end"
+    # the overfull slide was shrunk to fit: all of it is on its one page, none on the next
+    contains "the overfull slide keeps its last line" "$(page slides 6)" "point 18"
+    lacks "and does not spill over" "$(page slides 7)" "point"
+    contains "a rule in a quote does not separate slides" "$(page slides 7)" "and the quote goes on"
+    all=$(pdftotext "$out/slides.pdf" -)
+    # (the deck has a table with a column "Format": not that word)
+    for chrome in "Search" "Backlinks" "Back" "Slide size" "Include sub pages" "Exit" "Full screen" "#test/slides"; do
+        lacks "no furniture: $chrome" "$all" "$chrome"
+    done
+    unnumbered slides
+}
+pdf slides-43 "$base/-/export?path=$deck&format=slides&set=1&size=4:3" && {
+    expect "4:3 page" "$(size slides-43)" "720x540"
+    expect "still a page a slide" "$(pages slides-43)" "8"
+}
+pdf slides-a4 "$base/-/export?path=$deck&format=slides&set=1&size=A4" && {
+    expect "A4 landscape" "$(size slides-a4)" "842x596" # 1123x794px: A4 to a tenth of a millimetre
+    expect "and a page a slide" "$(pages slides-a4)" "8"
+}
+pdf slides-sub "$base/-/export?path=$note&format=slides&sub=1" && expect "sub pages as slides: every note's slides" "$(pages slides-sub)" "5"
+
 echo "--- an ordinary page, printed as it is (Ctrl+P)"
 pdf plain "$base/10%20Printing" && {
     all=$(pdftotext "$out/plain.pdf" -)

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en" class="deck-page">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}} – Slides</title>
+<link rel="stylesheet" href="/-/style.css">
+</head>
+<body>
+<main class="deck" id="deck" aria-label="Slide show: {{.Title}}" style="--slide-w: {{.W}}; --slide-h: {{.H}};">
+{{range .Slides}}<section class="slide" id="slide-{{.N}}" aria-roledescription="slide" aria-label="Slide {{.N}} of {{$.Total}}">
+<div class="slide-content">
+{{.HTML}}</div>
+</section>
+{{end}}</main>
+<nav class="deck-bar" aria-label="Slide show">
+<button type="button" id="deck-prev" aria-label="Previous slide" title="Previous slide">‹</button>
+<span class="deck-counter" id="deck-counter" aria-live="polite" aria-atomic="true">Slide 1 of {{.Total}}</span>
+<button type="button" id="deck-next" aria-label="Next slide" title="Next slide">›</button>
+<span class="deck-links"><a href="{{.BackURL}}" id="deck-exit">Exit</a> <a href="{{.PDFURL}}">PDF</a> <button type="button" id="deck-full" hidden>Full screen</button> <button type="button" id="deck-help-button" hidden>Keys <kbd>?</kbd></button></span>
+</nav>
+<div class="deck-progress" aria-hidden="true"><span id="deck-progress"></span></div>
+<dialog id="deck-help" aria-labelledby="deck-help-title">
+<form method="dialog"><h2 id="deck-help-title">Slide show keys</h2><button aria-label="Close">×</button></form>
+<div class="keys-table"></div>
+<p class="hint">Click the right half of a slide to go on, the left half to go back; swipe on a touch screen. The letter keys follow the switch in the keyboard help of the other pages.</p>
+</dialog>
+{{if .Mermaid}}<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script><script>mermaid.initialize({startOnLoad: false});</script>
+{{end}}<script src="/-/slides.js"></script>
+</body>
+</html>

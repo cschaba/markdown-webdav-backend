@@ -89,7 +89,7 @@ func (r *Renderer) transclude(wiki *wikilink.Node, resolved *resolvedLink, from 
 	if err != nil {
 		return false
 	}
-	doc, meta := r.parse(src, note, true, true)
+	doc, meta := r.parse(r.md, src, note, true, true)
 
 	var content ast.Node = doc
 	title := resolved.embed.Title

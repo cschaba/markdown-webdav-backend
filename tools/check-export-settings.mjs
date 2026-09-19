@@ -39,7 +39,7 @@ await sleep(900);
 let s = await state();
 check("starts with the defaults", s.size === "A4" && !s.sub && s.docs === 1, JSON.stringify(s));
 check("no Apply button to be seen", !s.applyVisible, "a submit button is visible");
-check("no page number setting: it was removed", s.fields === "path,set,size,sub", s.fields);
+check("the settings: format, size, sub pages - and no page number, which was removed", s.fields === "path,set,format,size,sub", s.fields);
 
 // a choice applies at once
 const choose = size => evaluate(`(() => { const f = document.querySelector("select[name=size]"); f.value = ${JSON.stringify(size)}; f.dispatchEvent(new Event("change", { bubbles: true })); })()`);
@@ -51,6 +51,16 @@ await click("input[name=sub]");
 await sleep(1100);
 s = await state();
 check("ticking sub pages applies it", s.sub && s.docs === 5 && s.size === "A5", JSON.stringify(s));
+
+// the format applies at once too, and brings its own sizes
+await evaluate(`(() => { const f = document.querySelector("select[name=format]"); f.value = "slides"; f.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+await sleep(1300);
+const slidesState = JSON.parse(await evaluate(`JSON.stringify({ format: document.querySelector("select[name=format]").value, sizes: [...document.querySelectorAll("select[name=size] option")].map(o => o.textContent).join(","), slides: document.querySelectorAll(".paper.sheets .slide").length })`));
+check("choosing the slide format applies it", slidesState.format === "slides" && slidesState.sizes === "16:9,4:3,A4" && slidesState.slides > 0, JSON.stringify(slidesState));
+await evaluate(`(() => { const f = document.querySelector("select[name=format]"); f.value = "book"; f.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+await sleep(1300);
+s = await state();
+check("and back to the book, with the book's size as it was", s.size === "A5" && s.sub, JSON.stringify(s));
 
 // the next export, reached the way a footer link reaches it, remembers both
 await send("Page.navigate", { url: `${base}/test/-/export?path=09%20Embedded%20notes.md` });

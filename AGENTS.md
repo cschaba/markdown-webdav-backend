@@ -97,6 +97,21 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
   A server-made PDF would be the way to get numbers everywhere.
 - A note and a folder of the same name: the note owns the URL, the folder the
   URL with a trailing slash. Build folder URLs with `Handler.folderURL`.
+- Slides (`internal/render/slides.go`, `internal/web/slides.go`,
+  `static/slides.js`): a note split at top-level `---`, Obsidian's way, parsed
+  *without* foldable sections (a second goldmark instance, `Renderer.flat`). A
+  slide has a fixed size in CSS pixels and is scaled as a whole; the PDF page is
+  given in the same pixels, so page and slide are one size by construction.
+  Three traps, each paid for:
+  1. **Draw diagrams before scaling anything.** Mermaid sizes boxes by measuring
+     labels on the page; measured on a scaled slide, the labels are cut off once
+     the scale changes (paper, a resized window). `slides.js` sets `measuring`.
+  2. **In the slide format nothing but the slides is printed.** A slide fills
+     its page to the pixel, so any box after the last one - Mermaid leaves some
+     in `<body>` - prints a blank sheet.
+  3. The deck's letter keys honour the same off switch as `keys.js`.
+  `tools/check-slides.mjs` runs the show in a browser; `check-pdf-export.sh`
+  covers the slide format.
 - Keyboard (`internal/web/static/keys.js`): Vim-style keys, link hints, a help
   dialog. Three things bind:
   1. **The keys move the browser's real focus**, never a painted highlight;
