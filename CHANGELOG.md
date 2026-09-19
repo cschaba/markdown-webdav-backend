@@ -7,6 +7,13 @@ change flags, URLs or behaviour.
 
 ## [Unreleased]
 
+### Added
+
+- The version at the foot of every page, and an About page (`/<vault>/-/about`)
+  with a link to the source on GitHub and the vault's statistics: notes,
+  drawings, attachments, folders, tags, links and missing links, size and last
+  change. The keyboard shortcuts help links to it too.
+
 ## [0.1.0] - 2026-09-19
 
 The first numbered version, and the first public one.

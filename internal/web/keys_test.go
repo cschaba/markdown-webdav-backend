@@ -23,6 +23,8 @@ func TestPagesAreBuiltForTheKeyboard(t *testing.T) {
 			`<dialog id="keys-help" aria-labelledby="keys-title">`, `<h2 id="keys-title">Keyboard shortcuts</h2>`,
 			`<button type="button" id="keys-button" hidden>`, `<input type="checkbox" id="keys-enabled" checked>`,
 			`<script src="/-/keys.js"></script>`,
+			// and from the help to the About page
+			`<p class="keys-about"><a href="/test/-/about">About this server</a>`,
 		} {
 			if !strings.Contains(html, want) {
 				t.Errorf("%s lacks %q", p, want)

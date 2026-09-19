@@ -1,0 +1,20 @@
+{{template "head" .}}
+<h1>About</h1>
+<table class="properties">
+<tr><th>Server</th><td>markdown-webdav-backend{{with .Version}} {{.}}{{end}}</td></tr>
+<tr><th>Source</th><td><a href="{{.Body.RepoURL}}" rel="noreferrer">{{.Body.RepoURL}}</a></td></tr>
+{{with .Body.ReleaseURL}}<tr><th>Release notes</th><td><a href="{{.}}" rel="noreferrer">v{{$.Version}}</a></td></tr>
+{{end}}</table>
+<h2>This vault</h2>
+{{with .Body.Stats}}<table class="properties stats">
+<tr><th>Notes</th><td>{{.Notes}}</td></tr>
+<tr><th>Drawings</th><td>{{.Drawings}}</td></tr>
+<tr><th>Attachments</th><td>{{.Attachments}}</td></tr>
+<tr><th>Folders</th><td>{{.Folders}}</td></tr>
+<tr><th>Tags</th><td><a href="{{$.TagsURL}}">{{.Tags}}</a></td></tr>
+<tr><th>Links</th><td>{{.Links}}{{if .MissingLinks}}, {{.MissingLinks}} of them to a file that is missing{{end}}</td></tr>
+<tr><th>Size</th><td>{{$.Body.Size}}, of which {{$.Body.NotesSize}} are Markdown</td></tr>
+{{if not .LastChange.IsZero}}<tr><th>Last change</th><td><time datetime="{{.LastChange.Format "2006-01-02T15:04:05Z07:00"}}">{{.LastChange.Format "2 January 2006, 15:04"}}</time></td></tr>
+{{end}}</table>{{end}}
+<p class="hint">Hidden files and folders, the git history among them, are not counted.</p>
+{{template "foot" .}}

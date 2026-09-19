@@ -57,10 +57,11 @@ type Vault struct {
 }
 
 type Config struct {
-	Name   string // the vault's name; the handler expects to be mounted at "/<name>"
-	Dir    string
-	Index  *index.Index
-	Vaults []Vault // all vaults, for the switcher
+	Name    string // the vault's name; the handler expects to be mounted at "/<name>"
+	Version string // of the server, for the foot of the pages and the About page
+	Dir     string
+	Index   *index.Index
+	Vaults  []Vault // all vaults, for the switcher
 	// Warning returns a non-nil error while something the owner should know
 	// about is broken, for example versioning. May be nil.
 	Warning func() error
@@ -80,6 +81,7 @@ func New(cfg Config) (*Handler, error) {
 	}
 	h := &Handler{Config: cfg, prefix: "/" + cfg.Name, root: root, mux: http.NewServeMux()}
 	h.mux.HandleFunc("GET /-/tags", h.tags)
+	h.mux.HandleFunc("GET /-/about", h.about)
 	h.mux.HandleFunc("GET /-/export", h.export)
 	h.mux.HandleFunc("GET /-/slides", h.slides)
 	h.mux.HandleFunc("GET /-/search", h.search)
@@ -105,6 +107,8 @@ type page struct {
 	TagsURL   string
 	GraphURL  string
 	SearchURL string
+	AboutURL  string
+	Version   string   // of the server, shown at the foot
 	ExportURL string   // set on pages that can be exported to PDF
 	SlidesURL string   // set on notes that have slide separators
 	Query     string   // what the search box shows
@@ -120,7 +124,7 @@ type exportable interface{ vaultPath() string }
 
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, name string, title string, crumbs []crumb, body any) {
 	p := page{Title: title, Vault: h.Name, Vaults: h.Vaults, TagsURL: h.prefix + "/-/tags", GraphURL: h.prefix + "/-/graph",
-		SearchURL: h.prefix + "/-/search", Wide: name == "graph.html", Crumbs: crumbs, Body: body}
+		SearchURL: h.prefix + "/-/search", AboutURL: h.prefix + "/-/about", Version: h.Version, Wide: name == "graph.html", Crumbs: crumbs, Body: body}
 	if results, ok := body.(searchBody); ok {
 		p.Query, p.History = results.Query, results.History // as just updated, not as the request had it
 	} else {
@@ -205,13 +209,13 @@ func Assets() (http.Handler, error) {
 
 // Home is the start page: the list of vaults, or straight into the vault
 // when there is only one.
-func Home(vaults []Vault) http.Handler {
+func Home(vaults []Vault, version string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if len(vaults) == 1 {
 			http.Redirect(w, r, vaults[0].URL, http.StatusFound)
 			return
 		}
-		writePage(w, "vaults.html", page{Title: "Vaults", Vaults: vaults})
+		writePage(w, "vaults.html", page{Title: "Vaults", Vaults: vaults, Version: version})
 	})
 }
 

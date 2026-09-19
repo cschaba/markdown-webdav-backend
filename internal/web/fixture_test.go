@@ -69,6 +69,14 @@ func TestFixtureVault(t *testing.T) {
 		`<a href="/test/">test</a>`, `<strong>test</strong>`, `<a href="/other/">other</a>`,
 		`<a href="/test/-/tags">Tags</a>`,
 	}, []string{`Does Not Exist</a>`})
+
+	// The About page counts the vault; the numbers follow the vault's pages,
+	// so only that it counts is checked here, the counting in index.TestStats.
+	expect("About", body("/test/-/about"), []string{
+		`<a href="https://github.com/cschaba/markdown-webdav-backend" rel="noreferrer">`,
+		"<tr><th>Notes</th>", "<tr><th>Drawings</th>", "<tr><th>Attachments</th>",
+		"of them to a file that is missing", "<th>Last change</th>",
+	}, []string{"<tr><th>Notes</th><td>0</td>"})
 	expect("00 Index backlinks", aside(index), []string{
 		`<a href="/test/01%20Formatting">01 Formatting</a>`,
 		`<a href="/test/sub/03%20Nested">03 Nested</a>`,
@@ -490,11 +498,12 @@ func TestFixtureIndexListsEveryPage(t *testing.T) {
 
 func TestHome(t *testing.T) {
 	two := []Vault{{"notes", "/notes/"}, {"test", "/test/"}}
-	rec := httptestGet(Home(two), "/")
-	if b, _ := io.ReadAll(rec.Body); rec.StatusCode != 200 || !strings.Contains(string(b), `<a href="/test/">test</a>`) {
+	rec := httptestGet(Home(two, "1.2.3"), "/")
+	if b, _ := io.ReadAll(rec.Body); rec.StatusCode != 200 || !strings.Contains(string(b), `<a href="/test/">test</a>`) ||
+		!strings.Contains(string(b), `<span class="about">markdown-webdav-backend 1.2.3</span>`) {
 		t.Errorf("two vaults: status %d, body %s", rec.StatusCode, b)
 	}
-	rec = httptestGet(Home(two[:1]), "/")
+	rec = httptestGet(Home(two[:1], "1.2.3"), "/")
 	if rec.StatusCode != http.StatusFound || rec.Header.Get("Location") != "/notes/" {
 		t.Errorf("one vault: status %d, location %q", rec.StatusCode, rec.Header.Get("Location"))
 	}
