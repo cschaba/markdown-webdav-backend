@@ -23,6 +23,8 @@ import (
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
+	callouts "github.com/zmtcreative/gm-alert-callouts"
+	highlight "github.com/zuern/goldmark-highlight"
 	"go.abhg.dev/goldmark/frontmatter"
 	"go.abhg.dev/goldmark/hashtag"
 	"go.abhg.dev/goldmark/mermaid"
@@ -40,10 +42,10 @@ type LinkResolver interface {
 	ResolveEmbed(from, target string) Embed
 	// ReadNote returns the source of the note at a vault path, for embedding.
 	ReadNote(vaultPath string) ([]byte, error)
-	// HasHeading reports whether the note that target means has a heading
-	// with that id. For anything that is not a note it reports true: there
-	// is nothing to check a heading against.
-	HasHeading(from, target, id string) bool
+	// HasAnchor reports whether the note that target means has a heading or
+	// a named block with that id. For anything that is not a note it reports
+	// true: there is nothing to check an anchor against.
+	HasAnchor(from, target, id string) bool
 }
 
 // Embed is what stands in for an embedded file. With neither Image nor Note
@@ -65,11 +67,15 @@ type Meta struct {
 	Frontmatter map[string]any
 	Tags        []string // front matter and inline, lowercased, sorted, unique
 	Headings    []string // the ids of the note's headings, in order
+	Blocks      []string // the anchors of its named blocks, see blockref.go
 	Slides      int      // how many slides the note makes, see slides.go; 1 if it has no separator
 	Words       int      // what a reader sees, see words.go
 	Characters  int
 
 	needsMermaid bool // an embedded note has diagrams; the page must load the script
+	// blockNodes finds a named block in the tree this Meta was parsed from,
+	// which is what ![[Note#^id]] shows in place. Only the parse keeps it.
+	blockNodes map[string]ast.Node
 	// Links holds the targets of everything that points at another vault
 	// file: wikilinks, wikilinks inside front matter values, and relative
 	// Markdown links. Raw targets without fragment, front matter first.
@@ -96,7 +102,19 @@ func New(links LinkResolver, tagURL string) *Renderer {
 			// Client-side: server-side rendering would need a headless
 			// browser in the image.
 			&mermaid.Extender{RenderMode: mermaid.RenderModeClient},
-			scriptExtender{}, // after it: replaces its script element, see scripts.go
+			// Callouts, > [!note]: Obsidian's icon set and its class names,
+			// so a stylesheet written for Obsidian fits. Folding is what
+			// "[!tip]-" and "[!tip]+" need; custom types are Obsidian's
+			// rule that an unknown type is still a callout.
+			callouts.NewAlertCallouts(
+				callouts.UseObsidianIcons(),
+				callouts.WithFolding(true),
+				callouts.WithCustomAlerts(true),
+			),
+			&highlight.Extender{}, // ==highlight==
+			commentExtender{},     // %%comment%%
+			blockRefExtender{},    // ^block-id
+			scriptExtender{},      // after it: replaces its script element, see scripts.go
 			highlighting.NewHighlighting(
 				highlighting.WithFormatOptions(chromahtml.WithClasses(true)),
 			),
@@ -171,6 +189,15 @@ func (r *Renderer) parse(md goldmark.Markdown, src []byte, from string, forRende
 				meta.Slides++
 			}
 		}
+		if anchor, block := blockAnchorOf(n); anchor != "" {
+			meta.Blocks = append(meta.Blocks, anchor)
+			if meta.blockNodes == nil {
+				meta.blockNodes = map[string]ast.Node{}
+			}
+			if _, seen := meta.blockNodes[anchor]; !seen {
+				meta.blockNodes[anchor] = block // of two blocks named alike, the first
+			}
+		}
 		return ast.WalkContinue, nil
 	})
 
@@ -225,15 +252,16 @@ func (r *Renderer) parse(md goldmark.Markdown, src []byte, from string, forRende
 				return ast.WalkContinue, nil
 			}
 		}
-		if resolved.anchor != "" { // (true for files without headings, such as images)
-			if target == "" { // [[#Heading]]: in this note
-				resolved.noHeading = !slices.Contains(meta.Headings, resolved.anchor)
+		if resolved.anchor != "" { // (true for files without anchors, such as images)
+			if target == "" { // [[#Heading]], [[#^id]]: in this note
+				resolved.noAnchor = !slices.Contains(meta.Headings, resolved.anchor) &&
+					!slices.Contains(meta.Blocks, resolved.anchor)
 				if embedded {
 					// Shown inside another page, "this note" is elsewhere.
 					resolved.url, _ = r.links.ResolveLink(from, "/"+from)
 				}
 			} else {
-				resolved.noHeading = !r.links.HasHeading(from, target, resolved.anchor)
+				resolved.noAnchor = !r.links.HasAnchor(from, target, resolved.anchor)
 			}
 		}
 		switch {
@@ -259,10 +287,10 @@ func (r *Renderer) parse(md goldmark.Markdown, src []byte, from string, forRende
 			// The browser would resolve "Note.md" against the linking note's
 			// URL, which works for a file next to it and for nothing else.
 			link.Destination = []byte(resolved.href())
-			if resolved.noHeading {
-				link.SetAttributeString("class", []byte(noHeadingClass))
+			if resolved.noAnchor {
+				link.SetAttributeString("class", []byte(noAnchorClass))
 				if link.Title == nil {
-					link.Title = []byte(noHeadingTitle)
+					link.Title = []byte(resolved.noAnchorTitle())
 				}
 			}
 		}

@@ -40,6 +40,7 @@ const SHOTS = [
     // the highlighted code and the diagram under it, in one view
     then: `(pre => pre && scrollTo(0, pre.getBoundingClientRect().top + scrollY - 110))(document.querySelector("article pre:not(.mermaid)"))` },
   { path: "/test/09%20Embedded%20notes", caption: "Embedded notes, shown in place" },
+  { path: "/test/13%20Callouts", caption: "Callouts, in Obsidian's types and colours, foldable without JavaScript" },
   { path: "/test/05%20Excalidraw", caption: "Excalidraw drawings, through the picture the plugin exports", wait: 1000 },
   { path: "/test/-/graph", caption: "The graph of notes and links, coloured by tag", wait: 4000 },
   { path: "/test/-/search?q=zeppelin", caption: "Search, best match first; also by tag, path and open or done tasks" },

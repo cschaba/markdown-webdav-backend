@@ -18,11 +18,14 @@ page cannot be reached from here by following links.
 | [[05 Excalidraw]] | drawings shown through the plugin's exported picture, light and dark, and the ones without a picture |
 | [[06 Search]] | the search box: ranking, phrases, `tag:`, `path:` and the task operators; brings three helper notes in `search/` |
 | [[07 Links]] | where a link leads: a name, a relative path, `./` and `../`, a path from the root — for notes, images and Markdown links |
-| [[08 Aliases and headings]] | `[[note\|alias]]` and `[[note#heading]]`: umlauts, repeated headings, heading paths, block references, headings that are missing |
+| [[08 Aliases and headings]] | `[[note\|alias]]` and `[[note#heading]]`: umlauts, repeated headings, heading paths, headings that are missing |
 | [[09 Embedded notes]] | `![[Note]]` and `![[Note#Heading]]` shown in place: links inside the embed, sections, diagrams, one level deep, what stays a link |
 | [[10 Printing]] | printing and *Export to PDF*: paper layout, page size, sub pages, intentional page breaks |
 | [[11 Keyboard]] | the keys: scrolling, headings and folds, link hints, lists, the help, switching them off, a note's statistics |
 | [[12 Slides]] | a note as a slide show, separated the Obsidian way: keys, mouse and touch, shrink to fit, and the PDF export's slide format |
+| [[13 Callouts]] | `> [!note]`: the types and their colours, titles, folding with `-` and `+`, aliases, unknown types |
+| [[14 Highlights and comments]] | `==highlight==`, and `%%comments%%` that reach neither the page, the word count, the tags, the links nor the search |
+| [[15 Block references]] | `^id` on a block, `[[Note#^id]]` pointing at it, `![[Note#^id]]` showing it |
 | [[v1.2 plan]] | a dot in a note name, broken front matter |
 | this page | front matter, tags, every way to write a link |
 

@@ -87,8 +87,19 @@ them that kept the umlauts, so in a German vault such links led nowhere. Now
 `render.Slug` is given to the parser for the headings and applied to the
 fragment of every link, and it keeps letters of any script. The index records
 each note's heading ids, which is what lets a link to a heading that is not
-there be marked instead of failing silently. Block references (`#^id`) lead to
-the note: rendered pages carry no block ids yet.
+there be marked instead of failing silently.
+
+**A block id is an id with a `^` in front of it.** `^claim` at the end of a
+block becomes `id="^claim"`, and `[[Note#^claim]]` is built from the fragment
+the same way `Slug` builds a heading anchor. The `^` is the point: `Slug`
+produces only letters, digits and dashes, so a block and a heading can never
+claim the same id, and the id reads in the URL as it was written. What that
+costs is that the two sides must be checked against the rendered page, because
+not every goldmark renderer writes the attributes a node carries — a code
+block's does not, and a block id on one would have been claimed by
+`Meta.Blocks`, offered by the index and found by nobody. Those blocks get an
+empty anchor element in front of them, and a test asserts for each kind that
+the id is really in the HTML.
 
 **An embedded note is rendered as itself, then placed.** `![[Note]]` runs the
 same renderer on the other note with that note's path, so everything inside it
@@ -204,6 +215,16 @@ files in the page cache, whole request including rendering the page:
 |---|---|---|---|---|---|
 | 1,000 notes, 5 MB | 25 ms | 25 ms | 23 ms | 3 ms | 44 ms |
 | 5,000 notes, 26 MB | 48 ms | 46 ms | 43 ms | 3 ms | 66 ms |
+
+Obsidian's `%%comments%%` are taken out of that text before it is searched
+(`stripComments`), since they are not in the page either. The first version of
+it split every note into lines and rebuilt each one, which on a vault where
+every note has a comment took the one-word query from 70 ms to 120 ms — half
+again as long, measured on one machine before and after, on a generated vault
+of 1,000 notes. It now walks the text without splitting it and copies no line
+that has no `%%` in it, which brings the same case back to 78 ms; a vault whose
+notes have no comments at all is unchanged, the difference being smaller than
+the spread between repeated runs.
 
 The first version was estimated at "20–50 ms for 2,000 notes" and measured at
 100 ms per 1,000 notes, and 10 s for a one-letter query on the large vault. The

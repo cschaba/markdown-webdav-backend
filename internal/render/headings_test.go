@@ -28,9 +28,10 @@ func TestSlug(t *testing.T) {
 
 type headingLinks struct{ fakeLinks }
 
-// "Book" has exactly these headings; everything else has any.
-func (headingLinks) HasHeading(from, target, id string) bool {
-	return (target != "Book" && target != "Book.md") || strings.Contains(" überblick chapter section notes notes-1 ", " "+id+" ")
+// "Book" has exactly these headings and named blocks; everything else has any.
+func (headingLinks) HasAnchor(from, target, id string) bool {
+	return (target != "Book" && target != "Book.md") ||
+		strings.Contains(" überblick chapter section notes notes-1 ^abc123 ", " "+id+" ")
 }
 
 func TestLinksToHeadings(t *testing.T) {
@@ -44,8 +45,11 @@ func TestLinksToHeadings(t *testing.T) {
 		"[[Book#Chapter|see ch. 1]]": `<a href="/Book#chapter">see ch. 1</a>`,
 		// a nested reference lands on the last heading named
 		"[[Book#Chapter#Section]]": `<a href="/Book#section">Book &gt; Chapter &gt; Section</a>`,
-		// a block reference has no anchor in the page: the note itself
-		"[[Book#^abc123]]": `<a href="/Book">Book &gt; ^abc123</a>`,
+		// a block reference lands on the block it names
+		"[[Book#^abc123]]": `<a href="/Book#^abc123">Book &gt; ^abc123</a>`,
+		"[[Book#^ABC123]]": `<a href="/Book#^abc123">Book &gt; ^ABC123</a>`,
+		// a block that is not there: still the note, but marked
+		"[[Book#^gone]]": `<a href="/Book#^gone" class="missing-heading" title="The note has no block with this id">Book &gt; ^gone</a>`,
 		// a heading that is not there: still the note, but marked
 		"[[Book#Nope]]": `<a href="/Book#nope" class="missing-heading" title="The note has no heading of this name">Book &gt; Nope</a>`,
 		// Markdown links take the same road

@@ -33,17 +33,20 @@ func Slug(heading string) string {
 	return b.String()
 }
 
-// anchor returns the heading id a link's fragment means, or "" if it names
+// anchor returns the id in the page a link's fragment means, or "" if it names
 // none. Of a nested reference, [[Note#Chapter#Section]], the last part counts:
-// that is the heading to land on. A block reference, [[Note#^id]], has no
-// counterpart in the rendered page and leads to the note.
+// that is the heading to land on. A fragment beginning with "^" names a block
+// rather than a heading, see blockref.go.
 func anchor(fragment string) string {
 	if i := strings.LastIndex(fragment, "#"); i >= 0 {
 		fragment = fragment[i+1:]
 	}
 	fragment = strings.TrimSpace(fragment)
-	if fragment == "" || strings.HasPrefix(fragment, "^") {
+	if fragment == "" {
 		return ""
+	}
+	if after, ok := strings.CutPrefix(fragment, BlockAnchorPrefix); ok {
+		return blockAnchor(after)
 	}
 	return Slug(fragment)
 }

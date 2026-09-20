@@ -426,21 +426,104 @@ func (idx *Index) snippets(note *Note, rel string, q query) []string {
 	return out
 }
 
-// body returns a note's text without its front matter, whose values are
-// searched through Note.props: as raw text its keys would match too, and
-// "tags" or "created" would find every note.
+// body returns the text of a note as the search sees it: without its front
+// matter, whose values are searched through Note.props instead (as raw text
+// its keys would match too, and "tags" or "created" would find every note),
+// and without its comments.
 func body(src string) string {
 	src = strings.ReplaceAll(src, "\r\n", "\n")
 	if strings.HasPrefix(src, "---\n") {
 		if end := strings.Index(src[3:], "\n---"); end >= 0 {
 			rest := src[3+end+4:]
 			if i := strings.IndexByte(rest, '\n'); i >= 0 {
-				return rest[i+1:]
+				src = rest[i+1:]
+			} else {
+				src = ""
 			}
-			return ""
 		}
 	}
-	return src
+	return stripComments(src)
+}
+
+// stripComments takes Obsidian's %%comments%% out of a note's text. They are
+// notes to the author that no reader sees (internal/render/comment.go), so
+// they must not make a note a hit, appear in a snippet or count as a task.
+//
+// Unlike the page, the search never parses the note - that is what keeps it
+// fast - so this is the one place where the two can drift. It follows the
+// parser in what it spares: a fenced block and a code span keep their text,
+// because there "%%" is code and not a comment.
+func stripComments(text string) string {
+	if !strings.Contains(text, commentMark) {
+		return text // the usual case, and the whole cost of this for it
+	}
+	var out strings.Builder
+	out.Grow(len(text))
+	fenced, commented := false, false
+	for first := true; len(text) > 0 || first; first = false {
+		line, rest, more := strings.Cut(text, "\n")
+		text = rest
+		if !first {
+			out.WriteByte('\n') // the note keeps its lines, so snippets stay whole
+		}
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case !commented && (strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~")):
+			fenced = !fenced
+		case !fenced && trimmed == commentMark:
+			commented = !commented // "%%" alone on a line opens and closes a block comment
+			continue
+		}
+		switch {
+		case commented:
+		case fenced:
+			out.WriteString(line)
+		default:
+			out.WriteString(stripInlineComments(line))
+		}
+		if !more {
+			break
+		}
+	}
+	return out.String()
+}
+
+const commentMark = "%%"
+
+// stripInlineComments removes %%…%% from one line, skipping over `code spans`.
+func stripInlineComments(line string) string {
+	if !strings.Contains(line, commentMark) {
+		return line // no comment, no copy: most lines of a note with one
+	}
+	var out strings.Builder
+	for i := 0; i < len(line); {
+		switch {
+		case line[i] == '`':
+			ticks := 1
+			for i+ticks < len(line) && line[i+ticks] == '`' {
+				ticks++
+			}
+			end := strings.Index(line[i+ticks:], line[i:i+ticks])
+			if end < 0 { // no closing run: the backticks are not a code span
+				out.WriteString(line[i : i+ticks])
+				i += ticks
+				continue
+			}
+			out.WriteString(line[i : i+ticks+end+ticks])
+			i += ticks + end + ticks
+		case strings.HasPrefix(line[i:], commentMark):
+			end := strings.Index(line[i+len(commentMark):], commentMark)
+			if end < 0 { // unclosed: not a comment, shown as written
+				out.WriteString(line[i:])
+				return out.String()
+			}
+			i += 2*len(commentMark) + end
+		default:
+			out.WriteByte(line[i])
+			i++
+		}
+	}
+	return out.String()
 }
 
 // headingsOf returns the heading lines of a (lowercased) text. "# comment" in

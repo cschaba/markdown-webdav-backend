@@ -274,7 +274,6 @@ func TestFixtureVault(t *testing.T) {
 		chaptersURL + `#überblick">links/Chapters &gt; überblick</a>`,
 		chaptersURL + `#bold-and-code">`,
 		chaptersURL + `#a-section">links/Chapters &gt; Notes &gt; A section</a>`,
-		chaptersURL + `">links/Chapters &gt; ^para1</a>`,
 		chaptersURL + `#no-such-heading"` + noHeading + `>`,
 		`<span class="missing" title="Not found in this vault: Nowhere">`,
 		`<a href="#alias">Alias</a>`, `<a href="#markdown-links">further down</a>`, `<a href="#nothing"` + noHeading + `>Nothing</a>`,
@@ -332,6 +331,94 @@ func TestFixtureVault(t *testing.T) {
 	// On its own page Menu does embed the recipe, and an embed counts as a link.
 	expect("Menu's own page", body("/test/embeds/Menu"), []string{`<div class="transclusion">`, "Whisk"}, nil)
 	expect("backlinks of the recipe", aside(body("/test/embeds/Recipe")), []string{"09 Embedded notes.md", "embeds/Menu.md", "embeds/Twin.md"}, nil)
+
+	// Callouts.
+	callouts := body("/test/13%20Callouts")
+	expect("13 Callouts", callouts, []string{
+		// no title: the type names the callout, and it is a <div>
+		`<div class="callout callout-note iconset-obsidian" data-callout="note">`,
+		`<p class="callout-title-text">Note</p>`,
+		// a title of its own, with markup and a link in the body
+		`<p class="callout-title-text">A title of its own</p>`,
+		`<a href="/test/01%20Formatting">01 Formatting</a>`,
+		`<div class="callout-body">`,
+		// folding: "-" closed, "+" open, both <details>, both without script
+		`<details class="callout callout-foldable callout-tip iconset-obsidian" data-callout="tip"><summary class="callout-title">`,
+		`data-callout="tip" open><summary class="callout-title">`,
+		// a plain quote is still a quote
+		"<blockquote>\n<p>A plain block quote stays a block quote.</p>",
+	}, nil)
+	// Which icon each type carries: an alias gets the icon of the type it
+	// stands for, a type nobody knows the icon of a note - as in Obsidian.
+	icons := map[string]string{}
+	for _, m := range regexp.MustCompile(
+		`data-callout="([a-z-]+)"[^>]*><(?:div|summary) class="callout-title">\s*<svg[^>]*class="svg-icon ([a-z0-9-]+)"`,
+	).FindAllStringSubmatch(callouts, -1) {
+		icons[m[1]] = m[2]
+	}
+	for kind, want := range map[string]string{
+		"note": "lucide-pencil", "tip": "lucide-flame",
+		"tldr": "lucide-clipboard-list", "my-own": "lucide-pencil",
+	} {
+		if icons[kind] != want {
+			t.Errorf("callout %q carries the icon %q, want %q", kind, icons[kind], want)
+		}
+	}
+
+	// Highlights, and comments that reach nothing.
+	comments := body("/test/14%20Highlights%20and%20comments")
+	expect("14 Highlights and comments", comments, []string{
+		"<mark>highlighted</mark>",
+		"<mark>a run with\n<strong>bold</strong>, <code>code</code> and a " +
+			`<a href="/test/01%20Formatting">link</a> in it</mark>`,
+		"2 == 2, and a = b",                          // a lone "=" is not a highlight
+		"before  after.",                             // the inline comment is gone, its neighbours are not
+		"<code>%%code%%</code>", "%%not a comment%%", // code keeps its text
+	}, []string{
+		"a comment holding", "hiddentag", "onlyinacomment", "It swallows headings",
+		"/test/05%20Excalidraw", // the link inside the comment is no link
+	})
+	// The link inside the comment makes no backlink either; the tags and the
+	// search are checked further down, where both are already at hand.
+	expect("no backlink from a comment", aside(body("/test/05%20Excalidraw")), nil, []string{"14 Highlights"})
+
+	// Block references.
+	blocks := body("/test/15%20Block%20references")
+	expect("15 Block references", blocks, []string{
+		// the id names the block and is not part of its text
+		`<p id="^claim">The id is written at the end of the block's last line.</p>`,
+		`<li id="^item">A list item can carry one.</li>`,
+		`<p id="^quoted">A quote, named through the paragraph inside it.</p>`,
+		`<table id="^table">`,
+		// a code block cannot hold an id, so its anchor stands in front of it
+		`<span class="block-anchor" id="^code"></span>`,
+		// links to them, here and in another note
+		`<a href="#^claim">^claim</a>`, `<a href="#^table">^table</a>`,
+		chaptersURL + `#^para1">links/Chapters &gt; ^para1</a>`,
+		chaptersURL + `#^para1">the paragraph</a>`,
+		`<a href="#^claim">^CLAIM</a>`, // the id is not case-sensitive
+		`<a href="#^nosuchblock" class="missing-heading" title="The note has no block with this id">`,
+		// ![[Note#^id]] shows the block, not the note
+		`<div class="transclusion-title">` + chaptersURL + `#^para1">Chapters &gt; ^para1</a></div>`,
+		"<p>A paragraph with a block id.</p>",
+		"<ul>\n<li>A list item with a block id.</li>\n</ul>", // an item keeps a list around it
+		// what is no id stays text
+		"2^10, a^b, ^bad_id and ^ .",
+	}, []string{
+		`id="^bad_id"`, "^claim</p>", "^item</li>",
+		"Markup in a heading", // only the named paragraph of Chapters is shown
+	})
+	// The embedded item comes alone: the line under it in Chapters says so,
+	// and this page's own list has the same line once.
+	if n := strings.Count(blocks, "The one above, not this one"); n != 1 {
+		t.Errorf("15: %d lines \"The one above\", want the page's own one", n)
+	}
+	// every anchor this page links to within itself is an id it has
+	for _, m := range regexp.MustCompile(`href="#(\^[^"]+)"( class="missing-heading")?`).FindAllStringSubmatch(blocks, -1) {
+		if exists := strings.Contains(blocks, `id="`+m[1]+`"`); exists == (m[2] != "") {
+			t.Errorf("block anchor %q: in the page = %v, marked missing = %v", m[1], exists, m[2] != "")
+		}
+	}
 
 	// Search. Every page has the box; the results come best match first.
 	expect("search box", index, []string{`<form class="search" action="/test/-/search" role="search">`, `name="q" value=""`}, nil)
@@ -431,6 +518,13 @@ func TestFixtureVault(t *testing.T) {
 		t.Errorf("a task filter and a tag filter must both hold: %s", got)
 	}
 
+	// Nothing a comment holds is searchable: neither a word of its own nor a tag.
+	for _, q := range []string{"onlyinacomment", "hiddentag"} {
+		if got := results(q); got != "" {
+			t.Errorf("%q, which only a comment holds, is found: %s", q, got)
+		}
+	}
+
 	expect("search in properties", body("/test/-/search?q=dirigible"),
 		[]string{"1 result for", `<p class="snippet">vessel: dirigible</p>`}, nil)
 	searched := body("/test/-/search?q=" + url.QueryEscape(`"rigid frame"`))
@@ -446,7 +540,7 @@ func TestFixtureVault(t *testing.T) {
 	expect("v1.2 plan", body("/test/v1.2%20plan"), []string{"this body text must still render"}, nil)
 
 	tags := regexp.MustCompile(`<[^>]+>`).ReplaceAllString(body("/test/-/tags"), "")
-	expect("tags", tags, []string{"#test 13", "#test/slides 1", "#test/keyboard 1", "#test/print 1", "#test/links 2", "#test/embeds 1", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag"})
+	expect("tags", tags, []string{"#test 16", "#test/callouts 1", "#test/highlights 1", "#test/slides 1", "#test/keyboard 1", "#test/print 1", "#test/links 3", "#test/embeds 1", "#test/missing 1", "#test/excalidraw 1", "#test/search 1", "#test/code 1", "#test/nested 1", "#überprüfung 1"}, []string{"notatag", "hiddentag"})
 	expect("tag page", body("/test/-/tag/test"), []string{"01 Formatting.md", "02 Code and Diagrams.md", "sub/03 Nested.md", "00 Index.md"}, []string{"v1.2"})
 	expect("unicode tag", body("/test/-/tag/%C3%BCberpr%C3%BCfung"), []string{"00 Index.md"}, nil)
 
