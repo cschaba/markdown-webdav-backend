@@ -25,13 +25,14 @@ Obsidian yet, and that is the point of it.
 
 ## Obsidian syntax still missing
 
-- **Callouts** (`> [!note]`, foldable `> [!tip]-`).
-- **`==highlight==`** and **`%%comments%%`** - comments must stay out of the
-  page, the search and the statistics.
-- **Block references**: `^id` at the end of a block, and `[[Note#^id]]` and
-  `![[Note#^id]]` pointing at it.
+Callouts, `==highlight==`, `%%comments%%` and block references are done (0.3.0).
+What is left:
 
-Each gets a page in the test vault, as every feature so far.
+- **Math**: `$inline$` and `$$block$$` through KaTeX or MathJax — another
+  script from a CDN, so it needs the same treatment as Mermaid.
+- **A comment begun inside a paragraph and closed on a later line.** Obsidian
+  hides it; here an inline `%%…%%` closes on the line it opened on, and the
+  block form needs `%%` alone on a line.
 
 ## Search
 

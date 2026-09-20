@@ -16,9 +16,10 @@ func (f fakeLinks) ResolveLink(from, target string) (string, bool) {
 }
 
 // Notes called "My Note" have the headings a test says they have; others any.
-func (f fakeLinks) HasHeading(from, target, id string) bool {
-	if src, ok := f["src:"+target+".md"]; ok { // a note with a source has the headings it has
-		return slices.Contains(New(f, "").Meta([]byte(src)).Headings, id)
+func (f fakeLinks) HasAnchor(from, target, id string) bool {
+	if src, ok := f["src:"+target+".md"]; ok { // a note with a source has what it has
+		meta := New(f, "").Meta([]byte(src))
+		return slices.Contains(meta.Headings, id) || slices.Contains(meta.Blocks, id)
 	}
 	return target != "My Note" || id == "some-heading"
 }
@@ -214,8 +215,8 @@ func (r recordingLinks) ResolveLink(from, target string) (string, bool) {
 	*r.asked = append(*r.asked, from+" -> "+target)
 	return "/found", true
 }
-func (r recordingLinks) HasHeading(from, target, id string) bool { return true }
-func (r recordingLinks) ReadNote(string) ([]byte, error)         { return nil, fs.ErrNotExist }
+func (r recordingLinks) HasAnchor(from, target, id string) bool { return true }
+func (r recordingLinks) ReadNote(string) ([]byte, error)        { return nil, fs.ErrNotExist }
 func (r recordingLinks) ResolveEmbed(from, target string) Embed {
 	*r.asked = append(*r.asked, from+" => "+target)
 	return Embed{Image: "/found.png"}

@@ -86,11 +86,11 @@ func (linkExtender) Extend(md goldmark.Markdown) {
 // resolvedLink is what Renderer.parse found out about a wikilink. It travels
 // on the node, because a node renderer is not told which note it is rendering.
 type resolvedLink struct {
-	url       string
-	anchor    string // id of the heading to land on, "" for none
-	noHeading bool   // the note exists, a heading with that id does not
-	embed     Embed
-	reason    string // why a note embed stayed a link, if there is a reason to give
+	url      string
+	anchor   string // id of the heading or block to land on, "" for none
+	noAnchor bool   // the note exists, nothing with that id in it does
+	embed    Embed
+	reason   string // why a note embed stayed a link, if there is a reason to give
 }
 
 func (l resolvedLink) href() string {
@@ -100,12 +100,21 @@ func (l resolvedLink) href() string {
 	return l.url + "#" + l.anchor
 }
 
-// A link to a heading that is not there still leads to the note, as in
-// Obsidian, but says so.
+// A link to a heading or a block that is not there still leads to the note, as
+// in Obsidian, but says so.
 const (
-	noHeadingClass = "missing-heading"
-	noHeadingTitle = "The note has no heading of this name"
+	noAnchorClass = "missing-heading"
+	noHeadingText = "The note has no heading of this name"
+	noBlockText   = "The note has no block with this id"
 )
+
+// noAnchorTitle says which of the two is missing.
+func (l resolvedLink) noAnchorTitle() string {
+	if IsBlockAnchor(l.anchor) {
+		return noBlockText
+	}
+	return noHeadingText
+}
 
 // wikiTarget returns what a wikilink points at: the file, and the heading or
 // block in it. The parser splits at the last "#", which takes
@@ -158,8 +167,8 @@ func (r linkRenderer) wikilink(w util.BufWriter, src []byte, node ast.Node, ente
 		return ast.WalkContinue, nil
 	case embed.Image == "":
 		_, _ = w.WriteString(`<a href="` + href + `"`)
-		if resolved.noHeading {
-			_, _ = w.WriteString(` class="` + noHeadingClass + `" title="` + noHeadingTitle + `"`)
+		if resolved.noAnchor {
+			_, _ = w.WriteString(` class="` + noAnchorClass + `" title="` + resolved.noAnchorTitle() + `"`)
 		} else if resolved.reason != "" {
 			_, _ = w.WriteString(` class="not-embedded" title="` + resolved.reason + `"`)
 		}

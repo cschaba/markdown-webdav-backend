@@ -156,6 +156,31 @@ curl -u vault:secret -X PROPFIND -H 'Depth: 1' http://127.0.0.1:18080/dav/tmp/
   nothing about keys can be tested from the HTML. When synthesising keys over
   the DevTools protocol, named keys need `code` and `nativeVirtualKeyCode`, or
   Enter activates nothing and the test blames the page.
+- Callouts and `==highlight==` are two more extensions
+  (`gm-alert-callouts`, `goldmark-highlight`), wired in `render.New`. The
+  callout markup is Obsidian's - `.callout`, `data-callout`, a `<div>` for a
+  plain one and a `<details>` for a foldable `[!tip]-` - so a stylesheet
+  written for Obsidian fits. Aliases (`[!tldr]`) and unknown types are the
+  extension's job and it does them as Obsidian does; `TestCallouts` pins what
+  this project needs of it.
+- Comments (`internal/render/comment.go`): `%%…%%` inline within one line,
+  `%%` alone on a line for the block form. **A comment must reach nothing** -
+  not the page, the word count, the tags, the links, the backlinks, the graph,
+  the search. It is parsed, not cut out of the source, so `%%` in a code span
+  or a fenced block stays text. The search is the one place that reads raw
+  text: `stripComments` in `internal/index/search.go` repeats the rule there
+  and must keep repeating it. It has a fast path for text without `%%` and
+  copies no line that has none - without that the scan took half again as long
+  on a vault where every note has a comment (measured, `docs/ARCHITECTURE.md`).
+- Block references (`internal/render/blockref.go`): `^id` at the end of a
+  block, or alone on the line after it, becomes the block's HTML id, prefixed
+  with `^` - a character `Slug` never produces, so a block id and a heading id
+  cannot collide. **Not every block renders the attributes it carries**: a code
+  block's renderer writes `<pre><code>` and drops them, so those get an empty
+  anchor element in front of them instead (`carriesID`). `TestBlockAnchors`
+  checks in the rendered HTML that every anchor `Meta.Blocks` claims is really
+  there; an id that is claimed and not written is a link leading nowhere and
+  nothing else notices.
 - Note embeds (`internal/render/embed.go`): `![[Note]]` renders the other note
   with the same renderer, *from the other note's path*, and puts the HTML into
   the host's tree in place of the wikilink. **One level deep, by the owner's

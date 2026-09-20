@@ -43,7 +43,10 @@ Obsidian client**, and the Docker image has not been built yet — see
 | Keyboard: Vim-style keys, link hints, help, can be switched off | works |
 | Printing and PDF export in book format | works; page numbers come from the print dialog |
 | Slide show, and the PDF export's slide format | works |
-| Callouts, block references (`#^id`), `==highlight==`, `%%comments%%` | not started |
+| Callouts, `> [!note]` | works, foldable with `-` and `+`, without JavaScript |
+| Block references: `^id`, `[[Note#^id]]`, `![[Note#^id]]` | works |
+| `==highlight==` | works |
+| `%%comments%%` | works: out of the page, the word count, the tags, the links and the search |
 | Search | works: words, phrases, `tag:`, `path:` and Obsidian's task operators, ranked by how well a note matches |
 | Search history | works: the last 10 searches, in a cookie, with a way to clear them |
 | Live results while typing, highlighted matches, history view in the browser | not started |
@@ -246,8 +249,14 @@ Capitals never matter, and `.md` may be left out. As in Obsidian:
 | `[[Name#Heading\|alias]]` | alias | that heading |
 | `[[#Heading]]` | Heading | a heading of the same note |
 | `[[Name#Chapter#Section]]` | Name > Chapter > Section | the last heading named |
-| `[[Name#^block]]` | Name > ^block | the note; block ids have no place in the page yet |
+| `[[Name#^block]]` | Name > ^block | the block named `^block` in the note |
 | `![[image.png\|200]]`, `![[image.png\|alt text]]` | the image | 200 pixels wide, or with that alt text |
+
+A block is named by writing `^id` at the end of its last line, or on the line
+after it — which is how a table, a list or a code block gets one, since their
+last line cannot carry it. `[[Note#^id]]` leads to that block and `![[Note#^id]]`
+shows it in place of the whole note. Ids are letters, digits and dashes, and
+capitals do not matter.
 
 Headings are matched whatever their capitals, umlauts or punctuation
 (`[[Name#Maße & Gewichte]]`); of two headings with the same name a link lands on

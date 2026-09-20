@@ -2,12 +2,21 @@
   color-scheme: light dark;
   --fg: #1f2328; --muted: #656d76; --bg: #ffffff; --soft: #f6f8fa;
   --line: #d0d7de; --link: #0969da; --warn-bg: #fff8c5; --warn-line: #d4a72c;
+  --mark-bg: #fff2a8;
+  /* Callout accents. They repeat what the icon and the title already say, so
+     they carry no information of their own; both sets are readable on their
+     own page background. */
+  --c-blue: #2f6feb; --c-cyan: #157d78; --c-green: #1a7f37;
+  --c-orange: #b46200; --c-red: #cf222e; --c-purple: #8250df;
 }
 /* screen only: paper is white, whatever the reader's theme */
 @media screen and (prefers-color-scheme: dark) {
   :root {
     --fg: #e6edf3; --muted: #8d96a0; --bg: #0d1117; --soft: #161b22;
     --line: #30363d; --link: #4493f8; --warn-bg: #3a2f00; --warn-line: #9e6a03;
+    --mark-bg: #6b5200;
+    --c-blue: #4493f8; --c-cyan: #39c5bb; --c-green: #3fb950;
+    --c-orange: #d29922; --c-red: #f85149; --c-purple: #a371f7;
   }
 }
 * { box-sizing: border-box; }
@@ -130,6 +139,51 @@ a.missing-heading { text-decoration: underline dashed; text-underline-offset: 3p
   text-decoration: none; font-size: 0.9rem;
 }
 .missing-embed::before { content: "missing: "; }
+
+/* Callouts, > [!note]. The markup is the extension's, which is Obsidian's, so
+   a stylesheet written for Obsidian fits it: .callout with data-callout, a
+   .callout-title holding the icon, a .callout-body. A foldable one ([!tip]- or
+   [!tip]+) is a <details> instead of a <div> and needs no script. */
+.callout {
+  --callout: var(--muted);
+  margin: 1rem 0; padding: 10px 14px; background: var(--soft);
+  border: 1px solid var(--line); border-left: 3px solid var(--callout); border-radius: 6px;
+}
+.callout-title { display: flex; align-items: center; gap: 8px; color: var(--callout); font-weight: 600; }
+.callout-title p { margin: 0; }
+.callout-title .svg-icon { flex: none; width: 1.1em; height: 1.1em; }
+.callout-body > :first-child { margin-top: 8px; }
+.callout-body > :last-child { margin-bottom: 0; }
+.callout-body > :only-child { margin: 8px 0 0; }
+.callout .callout { background: var(--bg); }
+/* The same marker as a foldable heading, at the end of the title line. */
+details.callout > summary { cursor: pointer; list-style: none; }
+details.callout > summary::-webkit-details-marker { display: none; }
+details.callout > summary::after { content: "▾"; margin-left: auto; font-size: 0.8em; }
+details.callout:not([open]) > summary::after { content: "▸"; }
+.callout-note, .callout-info, .callout-todo { --callout: var(--c-blue); }
+.callout-abstract, .callout-summary, .callout-tldr,
+.callout-tip, .callout-hint, .callout-important { --callout: var(--c-cyan); }
+.callout-success, .callout-check, .callout-done { --callout: var(--c-green); }
+.callout-question, .callout-help, .callout-faq,
+.callout-warning, .callout-caution, .callout-attention { --callout: var(--c-orange); }
+.callout-failure, .callout-fail, .callout-missing,
+.callout-danger, .callout-error, .callout-bug { --callout: var(--c-red); }
+.callout-example { --callout: var(--c-purple); }
+
+/* ==highlight== */
+mark { padding: 0 2px; border-radius: 3px; background: var(--mark-bg); color: inherit; }
+
+/* Named blocks, "^id". The anchor of a block that cannot carry an id itself
+   stands in front of it and takes up no room; see internal/render/blockref.go.
+   Either way the block a link landed on is tinted, so the reader sees which
+   one was meant - a paragraph in the middle of a page is otherwise hard to
+   find. */
+.block-anchor { display: block; height: 0; }
+[id]:target { scroll-margin-top: 12px; }
+article [id^="^"]:target, .block-anchor:target + * {
+  background: var(--warn-bg); border-radius: 4px; box-shadow: 0 0 0 6px var(--warn-bg);
+}
 
 /* Excalidraw drawings, shown through the picture the Obsidian plugin exports. */
 a.drawing { display: block; }
@@ -254,6 +308,12 @@ kbd {
 .paper-content img { max-width: 100%; }
 .paper-content details.fold > summary { margin: 14pt 0 5pt; cursor: default; }
 .paper-content details.fold > summary::before { content: none; }
+/* On paper every callout is open (print.js opens them), so the fold marker
+   would point at nothing; the same goes for the anchor of a named block. */
+.paper-content details.callout > summary { cursor: default; }
+.paper-content details.callout > summary::after { content: none; }
+.paper-content .callout { break-inside: avoid; border: 0.5pt solid #ccc; border-left: 1.5pt solid #999; background: none; }
+.paper-content .block-anchor { display: none; }
 .paper-content .doc + .doc { break-before: page; }
 .paper-content .doc-title { border-bottom: 0.5pt solid #999; padding-bottom: 4pt; }
 .paper-content .contents ol { padding-left: 1.4em; line-height: 1.9; }
@@ -296,6 +356,10 @@ html.export body { max-width: none; padding: 0 0 48px; background: #e9eaec; font
   a { color: inherit; }
   details.fold > summary { cursor: default; }
   details.fold > summary::before { content: none; }
+  details.callout > summary { cursor: default; }
+  details.callout > summary::after { content: none; }
+  .callout { break-inside: avoid; border: 0.5pt solid #ccc; border-left: 1.5pt solid #999; background: none; }
+  .block-anchor { display: none; }
   .transclusion { background: none; border-radius: 0; }
   .missing-embed, .drawing-unexported { border-color: #999; }
 }

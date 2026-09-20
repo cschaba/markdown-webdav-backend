@@ -23,3 +23,6 @@ The second one. A link by name lands on the first.
 Markup in a heading is not part of its name.
 
 A paragraph with a block id. ^para1
+
+- A list item with a block id. ^bullet
+- The one above, not this one.

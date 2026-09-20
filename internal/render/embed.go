@@ -78,8 +78,8 @@ func (r *Renderer) transclude(wiki *wikilink.Node, resolved *resolvedLink, from 
 	case note == from:
 		resolved.reason = embedSelf
 		return false
-	case resolved.noHeading:
-		return false // the link says that the heading is missing
+	case resolved.noAnchor:
+		return false // the link says that the heading or block is missing
 	}
 	host, ok := splitAround(wiki)
 	if !ok {
@@ -94,14 +94,21 @@ func (r *Renderer) transclude(wiki *wikilink.Node, resolved *resolvedLink, from 
 	var content ast.Node = doc
 	title := resolved.embed.Title
 	if resolved.anchor != "" {
-		// A heading and what is below it is exactly what fold.go made a
-		// section of.
-		section := findSection(doc, src, resolved.anchor, meta.Headings)
-		if section == nil {
+		var part ast.Node
+		if IsBlockAnchor(resolved.anchor) {
+			// One named block, found while its id was still on it: the ids
+			// come off in prepareEmbedded, so that they stay the host's.
+			part = embeddedBlock(meta.blockNodes[resolved.anchor])
+		} else {
+			// A heading and what is below it is exactly what fold.go made a
+			// section of.
+			part = findSection(doc, src, resolved.anchor, meta.Headings)
+		}
+		if part == nil {
 			return false
 		}
 		_, fragment := wikiTarget(wiki)
-		content, title = section, title+" > "+strings.Join(strings.Split(fragment, "#"), " > ")
+		content, title = part, title+" > "+strings.Join(strings.Split(fragment, "#"), " > ")
 	}
 	var buf bytes.Buffer
 	if err := r.md.Renderer().Render(&buf, src, content); err != nil {
@@ -139,24 +146,50 @@ func findSection(doc ast.Node, _ []byte, id string, ids []string) ast.Node {
 	return found
 }
 
+// embeddedBlock returns what to render for ![[Note#^id]]. A list item is shown
+// in a list of its own: a bare <li> is no HTML. The tree it is taken from was
+// parsed for this embed alone, so moving the item out of it costs nothing.
+func embeddedBlock(block ast.Node) ast.Node {
+	item, ok := block.(*ast.ListItem)
+	if !ok {
+		return block
+	}
+	list, ok := item.Parent().(*ast.List)
+	if !ok {
+		return block
+	}
+	only := ast.NewList(list.Marker)
+	only.IsTight = list.IsTight
+	only.Start = list.Start
+	list.RemoveChild(list, item)
+	only.AppendChild(only, item)
+	return only
+}
+
 // prepareEmbedded makes a parsed note fit for being shown inside another: no
-// heading ids, no script of its own. It reports whether there was a script.
+// ids on its headings or its named blocks, no script of its own. It reports
+// whether there was a script.
 func prepareEmbedded(doc ast.Node) (hadScript bool) {
-	var scripts []ast.Node
+	var scripts, gone []ast.Node
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
+		if id, ok := n.AttributeString("id"); ok && IsBlockAnchor(string(id.([]byte))) {
+			removeAttribute(n, "id")
+		}
 		switch n := n.(type) {
 		case *ast.Heading:
 			removeAttribute(n, "id")
+		case *blockAnchorNode:
+			gone = append(gone, n) // its id would be the host's second
 		case *mermaid.ScriptBlock:
 			scripts = append(scripts, n)
 		}
 		return ast.WalkContinue, nil
 	})
-	for _, script := range scripts {
-		script.Parent().RemoveChild(script.Parent(), script)
+	for _, n := range append(scripts, gone...) {
+		n.Parent().RemoveChild(n.Parent(), n)
 	}
 	return len(scripts) > 0
 }

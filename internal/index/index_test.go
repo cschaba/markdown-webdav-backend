@@ -278,14 +278,14 @@ func TestHasHeading(t *testing.T) {
 		{"area/Page.md", "./Book", "überblick", true}, // no Book there: nothing to check a heading against
 		{"area/Page.md", "pic.png", "anything", true}, // not a note
 	} {
-		if got := idx.HasHeading(tc.from, tc.target, tc.id); got != tc.want {
-			t.Errorf("HasHeading(%q, %q, %q) = %v", tc.from, tc.target, tc.id, got)
+		if got := idx.HasAnchor(tc.from, tc.target, tc.id); got != tc.want {
+			t.Errorf("HasAnchor(%q, %q, %q) = %v", tc.from, tc.target, tc.id, got)
 		}
 	}
 	// a heading added later is known after the write
 	writeFile(t, root, "Book.md", "# New\n")
 	idx.Update("Book.md")
-	if !idx.HasHeading("", "Book", "new") || idx.HasHeading("", "Book", "notes") {
+	if !idx.HasAnchor("", "Book", "new") || idx.HasAnchor("", "Book", "notes") {
 		t.Error("headings not updated with the note")
 	}
 }

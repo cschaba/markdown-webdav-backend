@@ -11,9 +11,9 @@ import (
 
 // countText counts the words and characters a reader sees in a note: its text,
 // code included, the labels of its links. Not counted: front matter, markup,
-// the source of diagrams, what images and embedded notes show - an embed is
-// another note's text. Obsidian's own count is roughly the same, but not
-// exactly: it counts the Markdown source.
+// %%comments%%, the source of diagrams, what images and embedded notes show -
+// an embed is another note's text. Obsidian's own count is roughly the same,
+// but not exactly: it counts the Markdown source.
 //
 // A word is a run of anything but whitespace with a letter or digit in it, so
 // "well-known" is one word and a lone "-" none. Characters are those of the
@@ -30,6 +30,8 @@ func countText(doc ast.Node, src []byte) (words, chars int) {
 		switch n := n.(type) {
 		case *mermaid.Block, *ast.Image:
 			return ast.WalkSkipChildren, nil
+		case *commentBlock, *commentInline:
+			return ast.WalkSkipChildren, nil // a comment is not part of the note
 		case *wikilink.Node:
 			if n.Embed {
 				return ast.WalkSkipChildren, nil

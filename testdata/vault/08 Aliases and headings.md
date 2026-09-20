@@ -3,7 +3,8 @@ tags: test/links
 ---
 # Aliases and headings
 
-As in Obsidian: `|` gives a link another text, `#` points it at a heading.
+As in Obsidian: `|` gives a link another text, `#` points it at a heading. A
+`#^` points at a block, which [[15 Block references]] shows.
 
 ## Alias
 
@@ -18,7 +19,6 @@ As in Obsidian: `|` gives a link another text, `#` points it at a heading.
 - `[[links/Chapters#überblick]]` — capitals do not matter: [[links/Chapters#überblick]]
 - `[[links/Chapters#Bold and code]]` — markup in the heading is not part of its name: [[links/Chapters#Bold and code]]
 - `[[links/Chapters#Notes#A section]]` — a path of headings lands on the last: [[links/Chapters#Notes#A section]]
-- `[[links/Chapters#^para1]]` — a block reference leads to the note: [[links/Chapters#^para1]]
 - `[[links/Chapters#No such heading]]` — still the note, but marked: [[links/Chapters#No such heading]]
 - `[[Nowhere#Heading]]` — no such note: [[Nowhere#Heading]]
 

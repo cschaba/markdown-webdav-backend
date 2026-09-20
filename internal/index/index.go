@@ -215,14 +215,14 @@ func (idx *Index) ResolveLink(from, target string) (string, bool) {
 	return idx.URL(p), true
 }
 
-// HasHeading implements render.LinkResolver.
-func (idx *Index) HasHeading(from, target, id string) bool {
+// HasAnchor implements render.LinkResolver.
+func (idx *Index) HasAnchor(from, target, id string) bool {
 	p, ok := idx.Resolve(from, target)
 	if !ok {
 		return true
 	}
 	note := idx.Note(p)
-	return note == nil || slices.Contains(note.Headings, id)
+	return note == nil || slices.Contains(note.Headings, id) || slices.Contains(note.Blocks, id)
 }
 
 // Resolve returns the vault path that target means in the note at from (a

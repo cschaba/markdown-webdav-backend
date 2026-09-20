@@ -228,3 +228,29 @@ func TestSearchSeesFilesChangedOnDisk(t *testing.T) {
 		t.Errorf("got %q; search must read the files, not a copy", got)
 	}
 }
+
+// What a comment holds is not in the page (internal/render/comment.go), so it
+// must not be findable either. The search never parses a note, so this is the
+// one place where the two readings of "%%" can drift apart.
+func TestStripComments(t *testing.T) {
+	for text, want := range map[string]string{
+		"before %%hidden%% after":         "before  after",
+		"%%whole line%%":                  "",
+		"a%%b%%c":                         "ac",
+		"%%one%% x %%two%%":               " x ",
+		"before %%never closed":           "before %%never closed",
+		"stray %% sign":                   "stray %% sign",
+		"`%%code%%` stays":                "`%%code%%` stays",
+		"``a `%%x%%` b`` stays":           "``a `%%x%%` b`` stays",
+		"```\n%%code%%\n```":              "```\n%%code%%\n```",
+		"~~~\n%%code%%\n~~~":              "~~~\n%%code%%\n~~~",
+		"a\n%%\nhidden\n%%\nb":            "a\n\n\n\nb", // the note keeps its lines
+		"a\n%%\n```\nstill hidden\n%%\nb": "a\n\n\n\n\nb",
+		"a\n%%\nto the end":               "a\n\n",
+		"nothing to do here":              "nothing to do here",
+	} {
+		if got := stripComments(text); got != want {
+			t.Errorf("stripComments(%q)\n got: %q\nwant: %q", text, got, want)
+		}
+	}
+}
